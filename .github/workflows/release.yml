@@ -28,14 +28,13 @@ jobs:
 
       - name: Build
         run: |
-          stack --local-bin-path . install
+          stack --local-bin-path . install --allow-different-user
           mv ./glados-exe ./glados
 
       - name: Zip source files
         run: |
           zip -r glados-sources.zip app src test package.yaml stack.yaml README.md
           tar -czvf glados-sources.tar.gz app src test package.yaml stack.yaml README.md
-
 
       - name: Create release
         uses: softprops/action-gh-release@v1
