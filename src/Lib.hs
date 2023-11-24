@@ -1,7 +1,11 @@
 module Lib
   ( someFunc,
+    someHello,
   )
 where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+someHello :: IO ()
+someHello = putStrLn "someFunc"
+
+someFunc :: Int
+someFunc = 1
