@@ -36,25 +36,8 @@ jobs:
           stack --local-bin-path . install
           mv ./glados-exe ./glados
 
-      - name: Install zip
-        run: |
-          sudo apt-get install zip -y
-          sudo apt-get install tar -y
-
-      - name: Zip source files
-        run: |
-          zip -r glados-sources.zip app src test package.yaml stack.yaml README.md
-          tar -czvf glados-sources.tar.gz app src test package.yaml stack.yaml README.md
-
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             glados
-            glados-sources.zip
-            glados-sources.tar.gz
-          tag_name: ${{ github.ref }}
-          body: |
-            ${{ github.event.release.body }}
-          draft: false
-          prerelease: false
