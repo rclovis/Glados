@@ -17,7 +17,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build
-        run: stack build --allow-different-user
+        run: |
+          stack setup
+          stack build --allow-different-user
 
       - name: Test
         run: stack test --coverage
