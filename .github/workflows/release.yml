@@ -28,6 +28,7 @@ jobs:
 
       - name: Build
         run: |
+          stack setup --allow-different-user
           stack --local-bin-path . install --allow-different-user
           mv ./glados-exe ./glados
 
