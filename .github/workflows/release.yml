@@ -10,8 +10,6 @@ on:
 jobs:
   create_release:
     runs-on: ubuntu-latest
-    env:
-      STACK_ROOT: /root/.stack
 
     steps:
       - name: Checkout
@@ -26,15 +24,15 @@ jobs:
       - name: Cache stack
         uses: actions/cache@v2
         with:
-          path: ${{ env.STACK_ROOT }}
+          path: ~/.stack
           key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml') }}
           restore-keys: |
             ${{ runner.os }}-stack-
 
       - name: Build
         run: |
-          stack setup --allow-different-user
-          stack --local-bin-path . install --allow-different-user
+          stack setup
+          stack --local-bin-path . install
           mv ./glados-exe ./glados
 
       - name: Install zip
