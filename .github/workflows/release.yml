@@ -10,13 +10,18 @@ on:
 jobs:
   create_release:
     runs-on: ubuntu-latest
-    container: haskell:8.10.4
     env:
       STACK_ROOT: /root/.stack
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Set up Stack
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version: '8.10.4'
+          stack-version: '2.7.3'
 
       - name: Cache stack
         uses: actions/cache@v2
@@ -31,6 +36,11 @@ jobs:
           stack setup --allow-different-user
           stack --local-bin-path . install --allow-different-user
           mv ./glados-exe ./glados
+
+      - name: Install zip
+        run: |
+          sudo apt-get install zip -y
+          sudo apt-get install tar -y
 
       - name: Zip source files
         run: |
