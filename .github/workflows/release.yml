@@ -30,11 +30,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-stack-
 
-      - name: Build
+      - name: Linux Build
         run: |
-          stack setup
-          stack --local-bin-path . install
+          stack --local-bin-path . install --system-ghc
           mv ./glados-exe ./glados
+          chmod +x ./glados
 
       - name: Create release
         uses: softprops/action-gh-release@v1
