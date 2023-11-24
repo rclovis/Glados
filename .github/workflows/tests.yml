@@ -6,14 +6,11 @@ on:
       - main
 
 jobs:
-  build:
+  build_and_test:
     runs-on: ubuntu-latest
+    container: haskell:latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-haskell@v1
-        with:
-          ghc-version: '9.4.7'
-          stack-version: '2.11.1'
 
       - name: Build
         run: stack build
