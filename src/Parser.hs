@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 module Parser
     ( parse
     , Parser(..)
@@ -9,6 +10,8 @@ module Parser
     , parseAndWith
     , parseMany
     , parseSome
+    , parseUInt
+    , parseInt
     ) where
 
 -- import Data.Maybe (fromJust, isJust)
@@ -19,6 +22,7 @@ newtype Parser a = Parser {
 }
 
 instance Functor Parser where
+    fmap :: (a -> b) -> Parser a -> Parser b
     fmap f (Parser p) = Parser f'
         where
             f' s = case p s of
@@ -99,6 +103,36 @@ parseUInt = Parser f
             Just (x, s') -> Just (read x :: Int, s')
             Nothing -> Nothing
 
+parseInt :: Parser Int
+parseInt = Parser f
+    where
+        f s = case runParser (parseOr (parseChar '-') (parseChar '+')) s of
+            Just (x, s') -> case runParser parseUInt s' of
+                Just (y, s'') -> case x of
+                    '-' -> Just (-y, s'')
+                    '+' -> Just (y, s'')
+                    _ -> Nothing
+                Nothing -> Nothing
+            Nothing -> case runParser parseUInt s of
+                Just (y, s') -> Just (y, s')
+                Nothing -> Nothing
+
+
+
+
+parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser [d]
+parseList open close sep p = Parser f
+    where
+        f s = case runParser open s of
+            Just (_, s') -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseMany sep) p)) s' of
+                Just (xs, s'') -> case runParser  (parseAndWith (\ _ y -> y) (parseMany sep) close) s'' of
+                    Just (_, s''') -> Just (xs, s''')
+                    Nothing -> Nothing
+                Nothing -> Nothing
+            Nothing -> Nothing
+
+
+
 parse :: String -> IO()
 parse _ = do
     -- Example of using the Parser type
@@ -113,6 +147,7 @@ parse _ = do
 
     print $ runParser  (parseAndWith (\ x y -> [x, y]) ( parseChar 'a') ( parseChar 'b')) "abcd"
 
+    print " "
 
 
     print $ runParser  (parseMany ( parseChar ' ')) "     foobar"
@@ -124,6 +159,7 @@ parse _ = do
     print $ runParser  (parseMany ( parseChar ' ')) " "
 
 
+    print " "
 
 
     print $ runParser  (parseSome ( parseChar ' ')) "     foobar"
@@ -133,3 +169,7 @@ parse _ = do
     print $ runParser  (parseSome ( parseChar ' ')) "foobar  "
     print $ runParser  (parseSome ( parseChar ' ')) "  "
     print $ runParser  (parseSome ( parseChar ' ')) " "
+
+    print " "
+
+    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ' ') parseInt) "(  1  2 3 4123 555 )"
