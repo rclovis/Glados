@@ -1,17 +1,27 @@
-import Lib (someFunc)
 import Test.HUnit
+import Parser (
+    Parser(..)
+    , runParser
+    , parseChar
+    , parseString
+    , parseAnyChar
+    , parseOr
+    , parseAnd
+    , parseAndWith
+    , parseMany
+    , parseSome
+    )
 
-someFuncTest :: Test
-someFuncTest = TestCase (assertEqual "func" someFunc 1)
-
-addTest :: Test
-addTest = TestCase (assertEqual "1 + 1 = 2" (2 :: Integer) (1 + 1))
+parseCharTest :: Test
+parseCharTest = TestCase $ do
+  assertEqual "parseCharTest" (Just ('a', "bc")) (runParser (parseChar 'a') "abc")
+  assertEqual "parseCharTest" Nothing (runParser (parseChar 'a') "fabc")
+  assertEqual "parseCharTest" Nothing (runParser (parseChar 'a') "")
 
 tests :: Test
 tests =
   TestList
-    [ TestLabel "AddTest" addTest,
-      TestLabel "SomeFuncTest" someFuncTest
+    [ TestLabel "ParseCharTest" parseCharTest
     ]
 
 main :: IO ()

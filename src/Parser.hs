@@ -1,78 +1,135 @@
 module Parser
     ( parse
+    , Parser(..)
+    , parseChar
+    , parseString
+    , parseAnyChar
+    , parseOr
+    , parseAnd
+    , parseAndWith
+    , parseMany
+    , parseSome
     ) where
-import Data.Maybe (fromJust, isJust)
-import Text.Read (readMaybe)
 
-data Token
-    = OpenParen |
-    CloseParen |
-    Number Int |
-    String String |
-    Symbol String
-    deriving (Show)
+-- import Data.Maybe (fromJust, isJust)
+-- import Text.Read (readMaybe)
 
-displayTokens :: [Token] -> IO()
-displayTokens [] = putStrLn ""
-displayTokens (x:xs) = do
-        print x
-        displayTokens xs
+newtype Parser a = Parser {
+    runParser :: String -> Maybe (a, String)
+}
 
-parseStringString :: String -> String
-parseStringString ('"':_) = ""
-parseStringString (x:xs) = x : parseStringString xs
-parseStringString [] = ""
+instance Functor Parser where
+    fmap f (Parser p) = Parser f'
+        where
+            f' s = case p s of
+                Just (x, s') -> Just (f x, s')
+                Nothing -> Nothing
 
-parseString :: String -> Maybe Token
-parseString x = Just (String (parseStringString x))
+parseChar :: Char -> Parser Char
+parseChar c = Parser f
+    where
+        f (x:xs)
+            | x == c = Just (c, xs)
+            | otherwise = Nothing
+        f [] = Nothing
 
-parseAtomString :: String -> String
-parseAtomString ('(':_) = ""
-parseAtomString (')':_) = ""
-parseAtomString (' ':_) = ""
-parseAtomString ('\t':_) = ""
-parseAtomString ('\n':_) = ""
-parseAtomString ('"':_) = ""
-parseAtomString (x:xs) = x : parseAtomString xs
-parseAtomString [] = ""
+parseString :: String -> Parser String
+parseString s = Parser f
+    where
+        f xs
+            | take len xs == s = Just (s, drop len xs)
+            | otherwise = Nothing
+        len = length s
 
-parseAtom :: String -> Maybe Token
-parseAtom x = Just (Symbol (parseAtomString x))
+parseAnyChar :: String -> Parser Char
+parseAnyChar s = Parser f
+    where
+        f (x:xs)
+            | x `elem` s = Just (x, xs)
+            | otherwise = Nothing
+        f [] = Nothing
 
-lengthMaybe :: Maybe Token -> Int
-lengthMaybe (Just (Number n)) = length (show n)
-lengthMaybe (Just (Symbol s)) = length s
-lengthMaybe (Just (String s)) = length s + 1
-lengthMaybe _ = 1
+parseOr :: Parser a -> Parser a -> Parser a
+parseOr (Parser p1) (Parser p2) = Parser f
+    where
+        f s = case p1 s of
+            Just (x, s') -> Just (x, s')
+            Nothing -> p2 s
 
-parseToken :: String -> [Maybe Token]
-parseToken [] = []
-parseToken ('(':xs) = Just OpenParen : parseToken xs
-parseToken (')':xs) = Just CloseParen : parseToken xs
-parseToken (' ':xs) = parseToken xs
-parseToken ('\t':xs) = parseToken xs
-parseToken ('\n':xs) = parseToken xs
-parseToken ('"':xs) = token : parseToken (drop lenToken xs)
-    where token = parseString xs
-          lenToken = lengthMaybe token
-parseToken x = token : parseToken (drop lenToken x)
-    where token = parseAtom x
-          lenToken = lengthMaybe token
+parseAnd :: Parser a -> Parser b -> Parser (a, b)
+parseAnd (Parser p1) (Parser p2) = Parser f
+    where
+        f s = case p1 s of
+            Just (x, s') -> case p2 s' of
+                Just (y, s'') -> Just ((x, y), s'')
+                Nothing -> Nothing
+            Nothing -> Nothing
 
-evaluateSymbols :: [Maybe Token] -> [Token]
-evaluateSymbols [] = []
-evaluateSymbols (Just (Symbol s):xs) = evaluateSymbol (Symbol s) : evaluateSymbols xs
-evaluateSymbols (Just x:xs) = x : evaluateSymbols xs
-evaluateSymbols _ = []
+parseAndWith :: ( a -> b -> c ) -> Parser a -> Parser b -> Parser c
+parseAndWith p0 p1 p2 = Parser f
+    where
+        f s = case runParser (parseAnd p1 p2) s of
+            Just ((a, b), s') -> Just (p0 a b, s')
+            Nothing -> Nothing
 
-evaluateSymbol :: Token -> Token
-evaluateSymbol (Symbol s) |
-    isJust nbr = Number (fromJust nbr)
-    where nbr = readMaybe s :: Maybe Int
-evaluateSymbol x = x
+
+parseMany :: Parser a -> Parser [a]
+parseMany (Parser p) = Parser f
+    where
+        f s = case p s of
+            Just (x, s') -> case f s' of
+                Just (xs, s'') -> Just (x : xs, s'')
+                Nothing -> Nothing
+            Nothing -> Just ([], s)
+
+
+parseSome :: Parser a -> Parser [a]
+parseSome (Parser p) = Parser f
+    where
+        f s = case p s of
+            Just (x, s') -> case f s' of
+                Just (xs, s'') -> Just (x : xs, s'')
+                Nothing -> Just ([x], s')
+            Nothing -> Nothing
+
+parseUInt :: Parser Int
+parseUInt = Parser f
+    where
+        f s = case runParser (parseSome  (parseAnyChar ['0'..'9'])) s of
+            Just (x, s') -> Just (read x :: Int, s')
+            Nothing -> Nothing
 
 parse :: String -> IO()
-parse path = do
-    file <- readFile path
-    let tokens = evaluateSymbols (parseToken file)
-    displayTokens tokens
+parse _ = do
+    -- Example of using the Parser type
+    print $ runParser (parseString "hello") "hello world"
+
+    -- Example of using the parseOr function
+    print $ runParser (parseOr (parseString "hello") (parseString "world")) "hello world"
+
+    print $ runParser  (parseAnd ( parseChar 'a') ( parseChar 'b')) "abcd"
+    print $ runParser  (parseAnd ( parseChar 'a') ( parseChar 'b')) "bcda"
+    print $ runParser  (parseAnd ( parseChar 'a') ( parseChar 'b')) "acd"
+
+    print $ runParser  (parseAndWith (\ x y -> [x, y]) ( parseChar 'a') ( parseChar 'b')) "abcd"
+
+
+
+    print $ runParser  (parseMany ( parseChar ' ')) "     foobar"
+    print $ runParser  (parseMany ( parseChar ' ')) "      foobar"
+    print $ runParser  (parseMany ( parseChar ' ')) " foobar"
+    print $ runParser  (parseMany ( parseChar ' ')) "  foobar"
+    print $ runParser  (parseMany ( parseChar ' ')) "foobar  "
+    print $ runParser  (parseMany ( parseChar ' ')) "  "
+    print $ runParser  (parseMany ( parseChar ' ')) " "
+
+
+
+
+    print $ runParser  (parseSome ( parseChar ' ')) "     foobar"
+    print $ runParser  (parseSome ( parseChar ' ')) "      foobar"
+    print $ runParser  (parseSome ( parseChar ' ')) " foobar"
+    print $ runParser  (parseSome ( parseChar ' ')) "  foobar"
+    print $ runParser  (parseSome ( parseChar ' ')) "foobar  "
+    print $ runParser  (parseSome ( parseChar ' ')) "  "
+    print $ runParser  (parseSome ( parseChar ' ')) " "
