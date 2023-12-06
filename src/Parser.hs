@@ -12,6 +12,7 @@ module Parser
     , parseSome
     , parseUInt
     , parseInt
+    , parseList
     ) where
 
 -- import Data.Maybe (fromJust, isJust)
@@ -76,7 +77,6 @@ parseAndWith p0 p1 p2 = Parser f
             Just ((a, b), s') -> Just (p0 a b, s')
             Nothing -> Nothing
 
-
 parseMany :: Parser a -> Parser [a]
 parseMany (Parser p) = Parser f
     where
@@ -85,7 +85,6 @@ parseMany (Parser p) = Parser f
                 Just (xs, s'') -> Just (x : xs, s'')
                 Nothing -> Nothing
             Nothing -> Just ([], s)
-
 
 parseSome :: Parser a -> Parser [a]
 parseSome (Parser p) = Parser f
@@ -118,19 +117,32 @@ parseInt = Parser f
                 Nothing -> Nothing
 
 
-
-
-parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser [d]
-parseList open close sep p = Parser f
+parseTrim :: Parser a -> Parser b -> Parser a
+parseTrim separator trim = Parser f
     where
-        f s = case runParser open s of
-            Just (_, s') -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseMany sep) p)) s' of
-                Just (xs, s'') -> case runParser  (parseAndWith (\ _ y -> y) (parseMany sep) close) s'' of
-                    Just (_, s''') -> Just (xs, s''')
+        f s = case runParser separator s of
+            Just (x, s') -> case runParser (parseMany trim) s' of
+                Just (_, s'') -> Just (x, s'')
+                Nothing -> Nothing
+            Nothing -> case runParser (parseMany trim) s of
+                Just (_, s') -> case runParser separator s' of
+                    Just (x, s'') -> case runParser (parseMany trim) s'' of
+                        Just (_, s''') -> Just (x, s''')
+                        Nothing -> Nothing
+                    Nothing -> Nothing
+                Nothing -> Nothing
+
+
+parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser [e]
+parseList open close sep trim p = Parser f
+    where
+        f s = case runParser (parseMany (parseAndWith (\ _ y -> y) open (parseAndWith (\ _ y -> y) (parseMany trim) p))) s of
+            Just (x, s') -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseTrim sep trim) p)) s' of
+                Just (xs, s'') -> case runParser  (parseAndWith (\ _ y -> y) (parseMany trim) close) s'' of
+                    Just (_, s''') -> Just (x ++ xs, s''')
                     Nothing -> Nothing
                 Nothing -> Nothing
             Nothing -> Nothing
-
 
 
 parse :: String -> IO()
@@ -172,4 +184,6 @@ parse _ = do
 
     print " "
 
-    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ' ') parseInt) "(  1  2 3 4123 555 )"
+    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ' ') (parseChar ' ') parseInt) "( 1  3)"
+    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ',') (parseChar ' ') parseInt) "( 1 )"
+    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ' ') (parseChar ' ') parseInt) "( 1 )"

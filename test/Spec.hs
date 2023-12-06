@@ -11,6 +11,7 @@ import Parser (
     , parseSome
     , parseUInt
     , parseInt
+    , runParser, parseList
     )
 
 parseCharTest :: Test
@@ -94,6 +95,18 @@ parseIntTest = TestCase $ do
   assertEqual "parseIntTest" (Just (0, "u123foobar")) (runParser parseInt "0u123foobar")
   assertEqual "parseIntTest" Nothing (runParser parseInt "d0u123foobar")
 
+parseListTest :: Test
+parseListTest = TestCase $ do
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(1 2 3 4 5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "[ 1   2  3 4   5  )")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1,2,3,4,5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1 ,  2 , 3,   4,5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1 ,  2 , 3,   4,5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "yess")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 , \n  2 ,3,4,5 )yess")
+  assertEqual "parseListTest" (Just ([1], "yess")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n )yess")
+  assertEqual "parseListTest" Nothing (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n 1)yess")
+  assertEqual "parseListTest" Nothing (runParser  (parseList(parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(  3f )")
+
 tests :: Test
 tests =
   TestList
@@ -106,7 +119,8 @@ tests =
     , TestLabel "ParseManyTest" parseManyTest
     , TestLabel "ParseSomeTest" parseSomeTest
     , TestLabel "ParseUIntTest" parseUIntTest
-    
+    , TestLabel "ParseIntTest" parseIntTest
+    , TestLabel "ParseListTest" parseListTest
     ]
 
 main :: IO ()
