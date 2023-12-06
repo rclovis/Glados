@@ -15,6 +15,7 @@ module Parser
     , parseList
     ) where
 
+import Control.Applicative (Alternative(..))
 -- import Data.Maybe (fromJust, isJust)
 -- import Text.Read (readMaybe)
 
@@ -29,6 +30,34 @@ instance Functor Parser where
             f' s = case p s of
                 Just (x, s') -> Just (f x, s')
                 Nothing -> Nothing
+
+instance Applicative Parser where
+    pure :: a -> Parser a
+    pure x = Parser f
+        where
+            f s = Just (x, s)
+
+    (<*>) :: Parser (a -> b) -> Parser a -> Parser b
+    (Parser p1) <*> (Parser p2) = Parser f
+        where
+            f s = case p1 s of
+                Just (x, s') -> case p2 s' of
+                    Just (y, s'') -> Just (x y, s'')
+                    Nothing -> Nothing
+                Nothing -> Nothing
+
+instance Alternative Parser where
+    empty :: Parser a
+    empty = Parser f
+        where
+            f _ = Nothing
+
+    (<|>) :: Parser a -> Parser a -> Parser a
+    (Parser p1) <|> (Parser p2) = Parser f
+        where
+            f s = case p1 s of
+                Just (x, s') -> Just (x, s')
+                Nothing -> p2 s
 
 parseChar :: Char -> Parser Char
 parseChar c = Parser f
@@ -55,11 +84,7 @@ parseAnyChar s = Parser f
         f [] = Nothing
 
 parseOr :: Parser a -> Parser a -> Parser a
-parseOr (Parser p1) (Parser p2) = Parser f
-    where
-        f s = case p1 s of
-            Just (x, s') -> Just (x, s')
-            Nothing -> p2 s
+parseOr p1 p2 = p1 <|> p2
 
 parseAnd :: Parser a -> Parser b -> Parser (a, b)
 parseAnd (Parser p1) (Parser p2) = Parser f
@@ -87,35 +112,13 @@ parseMany (Parser p) = Parser f
             Nothing -> Just ([], s)
 
 parseSome :: Parser a -> Parser [a]
-parseSome (Parser p) = Parser f
-    where
-        f s = case p s of
-            Just (x, s') -> case f s' of
-                Just (xs, s'') -> Just (x : xs, s'')
-                Nothing -> Just ([x], s')
-            Nothing -> Nothing
+parseSome p = (:) <$> p <*> parseMany p
 
 parseUInt :: Parser Int
-parseUInt = Parser f
-    where
-        f s = case runParser (parseSome  (parseAnyChar ['0'..'9'])) s of
-            Just (x, s') -> Just (read x :: Int, s')
-            Nothing -> Nothing
+parseUInt = read <$> parseSome (parseAnyChar ['0'..'9'])
 
 parseInt :: Parser Int
-parseInt = Parser f
-    where
-        f s = case runParser (parseOr (parseChar '-') (parseChar '+')) s of
-            Just (x, s') -> case runParser parseUInt s' of
-                Just (y, s'') -> case x of
-                    '-' -> Just (-y, s'')
-                    '+' -> Just (y, s'')
-                    _ -> Nothing
-                Nothing -> Nothing
-            Nothing -> case runParser parseUInt s of
-                Just (y, s') -> Just (y, s')
-                Nothing -> Nothing
-
+parseInt = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUInt
 
 parseTrim :: Parser a -> Parser b -> Parser a
 parseTrim separator trim = Parser f
@@ -131,7 +134,6 @@ parseTrim separator trim = Parser f
                         Nothing -> Nothing
                     Nothing -> Nothing
                 Nothing -> Nothing
-
 
 parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser [e]
 parseList open close sep trim p = Parser f
