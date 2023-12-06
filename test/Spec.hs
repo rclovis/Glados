@@ -1,18 +1,19 @@
+import Parser
+  ( Parser (..),
+    parseAnd,
+    parseAndWith,
+    parseAnyChar,
+    parseChar,
+    parseInt,
+    parseList,
+    parseMany,
+    parseOr,
+    parseSome,
+    parseString,
+    parseUInt,
+    runParser,
+  )
 import Test.HUnit
-import Parser (
-    Parser(..)
-    , parseChar
-    , parseString
-    , parseAnyChar
-    , parseOr
-    , parseAnd
-    , parseAndWith
-    , parseMany
-    , parseSome
-    , parseUInt
-    , parseInt
-    , runParser, parseList
-    )
 
 parseCharTest :: Test
 parseCharTest = TestCase $ do
@@ -97,31 +98,31 @@ parseIntTest = TestCase $ do
 
 parseListTest :: Test
 parseListTest = TestCase $ do
-  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(1 2 3 4 5)")
-  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "[ 1   2  3 4   5  )")
-  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1,2,3,4,5)")
-  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1 ,  2 , 3,   4,5)")
-  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1 ,  2 , 3,   4,5)")
-  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "yess")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 , \n  2 ,3,4,5 )yess")
-  assertEqual "parseListTest" (Just ([1], "yess")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n )yess")
-  assertEqual "parseListTest" Nothing (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n 1)yess")
-  assertEqual "parseListTest" Nothing (runParser  (parseList(parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(  3f )")
-  assertEqual "parseListTest" (Just ([[1,2],[1,2]], "")) (runParser  (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt)) "(  (1  2 ) ( 1 2) )" )
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(1 2 3 4 5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "[ 1   2  3 4   5  )")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1,2,3,4,5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1 ,  2 , 3,   4,5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "")) (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ',') (parseChar ' ') parseInt) "[1 ,  2 , 3,   4,5)")
+  assertEqual "parseListTest" (Just ([1, 2, 3, 4, 5], "yess")) (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 , \n  2 ,3,4,5 )yess")
+  assertEqual "parseListTest" (Just ([1], "yess")) (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n )yess")
+  assertEqual "parseListTest" Nothing (runParser (parseList (parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n 1)yess")
+  assertEqual "parseListTest" Nothing (runParser (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(  3f )")
+  assertEqual "parseListTest" (Just ([[1, 2], [1, 2]], "")) (runParser (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt)) "(  (1  2 ) ( 1 2) )")
 
 tests :: Test
 tests =
   TestList
-    [ TestLabel "ParseCharTest" parseCharTest
-    , TestLabel "ParseStringTest" parseStringTest
-    , TestLabel "ParseAnyCharTest" parseAnyCharTest
-    , TestLabel "ParseOrTest" parseOrTest
-    , TestLabel "ParseAndTest" parseAndTest
-    , TestLabel "ParseAndWithTest" parseAndWithTest
-    , TestLabel "ParseManyTest" parseManyTest
-    , TestLabel "ParseSomeTest" parseSomeTest
-    , TestLabel "ParseUIntTest" parseUIntTest
-    , TestLabel "ParseIntTest" parseIntTest
-    , TestLabel "ParseListTest" parseListTest
+    [ TestLabel "ParseCharTest" parseCharTest,
+      TestLabel "ParseStringTest" parseStringTest,
+      TestLabel "ParseAnyCharTest" parseAnyCharTest,
+      TestLabel "ParseOrTest" parseOrTest,
+      TestLabel "ParseAndTest" parseAndTest,
+      TestLabel "ParseAndWithTest" parseAndWithTest,
+      TestLabel "ParseManyTest" parseManyTest,
+      TestLabel "ParseSomeTest" parseSomeTest,
+      TestLabel "ParseUIntTest" parseUIntTest,
+      TestLabel "ParseIntTest" parseIntTest,
+      TestLabel "ParseListTest" parseListTest
     ]
 
 main :: IO ()
