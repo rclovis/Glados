@@ -16,8 +16,8 @@ module Parser
     ) where
 
 import Control.Applicative (Alternative(..))
--- import Data.Maybe (fromJust, isJust)
--- import Text.Read (readMaybe)
+-- import Text.ParserCombinators.ReadP (between, sepBy)
+
 
 newtype Parser a = Parser {
     runParser :: String -> Maybe (a, String)
@@ -58,6 +58,14 @@ instance Alternative Parser where
             f s = case p1 s of
                 Just (x, s') -> Just (x, s')
                 Nothing -> p2 s
+
+instance Monad Parser where
+    (>>=) :: Parser a -> (a -> Parser b) -> Parser b
+    (Parser p1) >>= f = Parser f'
+        where
+            f' s = case p1 s of
+                Just (x, s') -> runParser (f x) s'
+                Nothing -> Nothing
 
 parseChar :: Char -> Parser Char
 parseChar c = Parser f
@@ -121,71 +129,19 @@ parseInt :: Parser Int
 parseInt = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUInt
 
 parseTrim :: Parser a -> Parser b -> Parser a
-parseTrim separator trim = Parser f
-    where
-        f s = case runParser separator s of
-            Just (x, s') -> case runParser (parseMany trim) s' of
-                Just (_, s'') -> Just (x, s'')
-                Nothing -> Nothing
-            Nothing -> case runParser (parseMany trim) s of
-                Just (_, s') -> case runParser separator s' of
-                    Just (x, s'') -> case runParser (parseMany trim) s'' of
-                        Just (_, s''') -> Just (x, s''')
-                        Nothing -> Nothing
-                    Nothing -> Nothing
-                Nothing -> Nothing
+parseTrim separator trim = do separator <* parseMany trim <|> parseMany trim *> separator <* parseMany trim
 
 parseList :: Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser [e]
-parseList open close sep trim p = Parser f
-    where
-        f s = case runParser (parseMany (parseAndWith (\ _ y -> y) open (parseAndWith (\ _ y -> y) (parseMany trim) p))) s of
-            Just (x, s') -> case runParser (parseMany (parseAndWith (\ _ y -> y) (parseTrim sep trim) p)) s' of
-                Just (xs, s'') -> case runParser  (parseAndWith (\ _ y -> y) (parseMany trim) close) s'' of
-                    Just (_, s''') -> Just (x ++ xs, s''')
-                    Nothing -> Nothing
-                Nothing -> Nothing
-            Nothing -> Nothing
-
+parseList open close sep trim p = do
+    _ <- open
+    _ <- parseMany trim
+    x <- p
+    xs <- parseMany (parseAndWith (\ _ y -> y) (parseTrim sep trim) p)
+    _ <- parseMany trim
+    _ <- close
+    return (x:xs)
 
 parse :: String -> IO()
 parse _ = do
     -- Example of using the Parser type
     print $ runParser (parseString "hello") "hello world"
-
-    -- Example of using the parseOr function
-    print $ runParser (parseOr (parseString "hello") (parseString "world")) "hello world"
-
-    print $ runParser  (parseAnd ( parseChar 'a') ( parseChar 'b')) "abcd"
-    print $ runParser  (parseAnd ( parseChar 'a') ( parseChar 'b')) "bcda"
-    print $ runParser  (parseAnd ( parseChar 'a') ( parseChar 'b')) "acd"
-
-    print $ runParser  (parseAndWith (\ x y -> [x, y]) ( parseChar 'a') ( parseChar 'b')) "abcd"
-
-    print " "
-
-
-    print $ runParser  (parseMany ( parseChar ' ')) "     foobar"
-    print $ runParser  (parseMany ( parseChar ' ')) "      foobar"
-    print $ runParser  (parseMany ( parseChar ' ')) " foobar"
-    print $ runParser  (parseMany ( parseChar ' ')) "  foobar"
-    print $ runParser  (parseMany ( parseChar ' ')) "foobar  "
-    print $ runParser  (parseMany ( parseChar ' ')) "  "
-    print $ runParser  (parseMany ( parseChar ' ')) " "
-
-
-    print " "
-
-
-    print $ runParser  (parseSome ( parseChar ' ')) "     foobar"
-    print $ runParser  (parseSome ( parseChar ' ')) "      foobar"
-    print $ runParser  (parseSome ( parseChar ' ')) " foobar"
-    print $ runParser  (parseSome ( parseChar ' ')) "  foobar"
-    print $ runParser  (parseSome ( parseChar ' ')) "foobar  "
-    print $ runParser  (parseSome ( parseChar ' ')) "  "
-    print $ runParser  (parseSome ( parseChar ' ')) " "
-
-    print " "
-
-    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ' ') (parseChar ' ') parseInt) "( 1  3)"
-    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ',') (parseChar ' ') parseInt) "( 1 )"
-    print $ runParser  (parseList ( parseChar '(') ( parseChar ')') ( parseChar ' ') (parseChar ' ') parseInt) "( 1 )"

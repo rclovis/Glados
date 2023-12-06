@@ -106,6 +106,7 @@ parseListTest = TestCase $ do
   assertEqual "parseListTest" (Just ([1], "yess")) (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n )yess")
   assertEqual "parseListTest" Nothing (runParser  (parseList(parseChar '[') (parseChar ')') (parseChar ',') (parseAnyChar " \n\t") parseInt) "[1 \n 1)yess")
   assertEqual "parseListTest" Nothing (runParser  (parseList(parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(  3f )")
+  assertEqual "parseListTest" (Just ([[1,2],[1,2]], "")) (runParser  (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt)) "(  (1  2 ) ( 1 2) )" )
 
 tests :: Test
 tests =
