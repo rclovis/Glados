@@ -25,6 +25,7 @@ library
   exposed-modules:
       Lexer
       Parser
+      Sexpr
   other-modules:
       Paths_glados
   autogen-modules:
