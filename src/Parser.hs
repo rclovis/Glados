@@ -14,6 +14,7 @@ module Parser
     parseInt,
     parseList,
     parseNothing,
+    parseInteger,
   )
 where
 
@@ -134,6 +135,9 @@ parseUInt = read <$> parseSome (parseAnyChar ['0' .. '9'])
 
 parseInt :: Parser Int
 parseInt = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUInt
+
+parseInteger :: Parser Integer
+parseInteger = read <$> parseSome (parseAnyChar ['0' .. '9'])
 
 parseTrim :: Parser a -> Parser b -> Parser a
 parseTrim separator trim = do separator <* parseMany trim <|> parseMany trim *> separator <* parseMany trim

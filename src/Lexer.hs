@@ -13,6 +13,7 @@ import Parser
     parseAnyChar,
     parseChar,
     parseInt,
+    parseInteger,
     parseList,
     parseMany,
     parseNothing,
@@ -27,7 +28,7 @@ data Token
   = ClosePar
   | OpenPar
   | Symbol String
-  | Number Int
+  | Number Integer
   | String String
   | Boolean Bool
   | Null
@@ -47,7 +48,7 @@ parseSymbol :: Parser Token
 parseSymbol = fmap Symbol (parseSome (parseAnyChar (printableChar ") \t\n\"")))
 
 parseNumber :: Parser Token
-parseNumber = fmap Number parseInt
+parseNumber = fmap Number parseInteger
 
 parseStringLex :: Parser Token
 parseStringLex = fmap String (parseChar '"' *> parseMany (parseAndWith (\_ y -> y) (parseChar '\\') (parseChar '\"') <|> parseAnyChar (printableChar "\"")) <* parseChar '"')
