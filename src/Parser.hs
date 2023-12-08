@@ -1,8 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Parser
-  ( parse,
-    Parser (..),
+  ( Parser (..),
     parseChar,
     parseString,
     parseAnyChar,
@@ -14,6 +13,8 @@ module Parser
     parseUInt,
     parseInt,
     parseList,
+    parseNothing,
+    parseInteger,
   )
 where
 
@@ -124,11 +125,19 @@ parseMany (Parser p) = Parser f
 parseSome :: Parser a -> Parser [a]
 parseSome p = (:) <$> p <*> parseMany p
 
+parseNothing :: Parser ()
+parseNothing = Parser f
+  where
+    f s = Just ((), s)
+
 parseUInt :: Parser Int
 parseUInt = read <$> parseSome (parseAnyChar ['0' .. '9'])
 
 parseInt :: Parser Int
 parseInt = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUInt
+
+parseInteger :: Parser Integer
+parseInteger = read <$> parseSome (parseAnyChar ['0' .. '9'])
 
 parseTrim :: Parser a -> Parser b -> Parser a
 parseTrim separator trim = do separator <* parseMany trim <|> parseMany trim *> separator <* parseMany trim
@@ -142,8 +151,3 @@ parseList open close sep trim p = do
   _ <- parseMany trim
   _ <- close
   return (x : xs)
-
-parse :: String -> IO ()
-parse _ = do
-  -- Example of using the Parser type
-  print $ runParser (parseString "hello") "hello world"

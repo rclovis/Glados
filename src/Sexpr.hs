@@ -1,16 +1,11 @@
 module Sexpr
   (
+    Sexpr (..),
+    parseSexpr
   )
 where
 
-data Token
-  = ClosePar
-  | OpenPar
-  | Symbol String
-  | Number Integer
-  | String String
-  | Boolean Bool
-  deriving (Show, Eq)
+import Lexer (Token (..))
 
 data Sexpr
   = Num Integer
@@ -20,12 +15,13 @@ data Sexpr
   | List [Sexpr]
   deriving (Show)
 
-parseSexpr :: [Token] -> Sexpr
-parseSexpr tokens =
+parseSexpr :: Maybe [Token] -> [Sexpr]
+parseSexpr Nothing = error "Nothing"
+parseSexpr (Just tokens) =
     let (sexpr, remainingsTokens) = parseExpr tokens
     in if null remainingsTokens
-        then sexpr
-        else error ("Uncosumed Tokens: " ++ show remainingsTokens)
+        then [sexpr]
+        else sexpr : parseSexpr (Just remainingsTokens)
 
 parseExpr :: [Token] -> (Sexpr, [Token])
 parseExpr (OpenPar : restTokens) = parseListSexpr restTokens []
@@ -34,11 +30,12 @@ parseExpr ((String a) : restTokens) = ((Str a), restTokens)
 parseExpr ((Boolean a) : restTokens) = ((Bool a), restTokens)
 parseExpr ((Number a) : restTokens) = ((Num a), restTokens)
 parseExpr (ClosePar : _) = error "Unexpected ClosePar encountered"
+parseExpr (Null : _) = error "Unexpected Null encountered"
 parseExpr [] = error "Invalid expression"
 
 parseListSexpr :: [Token] -> [Sexpr] -> (Sexpr, [Token])
 parseListSexpr [] _ = error "Mismatched paranthesis"
-parseListSexpr (ClosePar : restTokens) acc = (List acc, restTokens)
+parseListSexpr (ClosePar : restTokens) acc = (List (reverse acc), restTokens)
 parseListSexpr tokens acc =
     let (token, restTokens) = parseExpr tokens
     in parseListSexpr restTokens (token : acc)

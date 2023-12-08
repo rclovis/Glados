@@ -1,6 +1,14 @@
 module Main (main) where
 
-import Parser (parse)
+import Lexer (tokenize)
+
+import Sexpr (parseSexpr)
 
 main :: IO ()
-main = parse "test.rkt"
+main = do
+  file <- readFile "test.rkt"
+  let tokens = tokenize file
+  print tokens
+  let sex = parseSexpr tokens
+  print sex
+
