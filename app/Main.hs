@@ -1,6 +1,8 @@
 module Main (main) where
 
-import Parser (parse)
+import Lexer (Token (..), tokenize)
 
 main :: IO ()
-main = parse "test.rkt"
+main = do
+  file <- readFile "test.rkt"
+  print $ tokenize file
