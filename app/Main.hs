@@ -1,7 +1,6 @@
 module Main (main) where
 
 import Lexer (tokenize)
-
 import Sexpr (parseSexpr)
 
 main :: IO ()
@@ -11,4 +10,3 @@ main = do
   print tokens
   let sex = parseSexpr tokens
   print sex
-
