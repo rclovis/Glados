@@ -2,6 +2,9 @@
 
 module Ast
   ( Ast (..),
+    getAst,
+    genAst,
+    factorial,
   )
 where
 
