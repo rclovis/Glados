@@ -1,6 +1,9 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Ast () where
+module Ast
+  ( Ast (..),
+  )
+where
 
 import Control.Applicative ((<|>))
 import Sexpr (Sexpr (..))
@@ -10,48 +13,18 @@ data Ast
   | If Ast Ast Ast
   | Lambda [String] Ast
   | Call Ast [Ast]
-  | Var String
-  | Num Integer
-  | Str String
-  | Bool Bool
   | Sym String
+  | Var String
+  | Str String
+  | Op String
+  | Num Integer
+  | Bool Bool
   deriving (Eq, Ord, Show)
-
--- | Factorial function AST.
-runFactorial :: [Ast]
-runFactorial =
-  [ Define
-      "factorial"
-      ( Lambda
-          ["n"]
-          ( If
-              (Call (Var "<") [Var "n", Ast.Num 2])
-              (Ast.Num 1)
-              (Call (Var "*") [Var "n", Call (Var "factorial") [Call (Var "-") [Var "n", Ast.Num 1]]])
-          )
-      ),
-    Call (Var "factorial") [Ast.Num 5]
-  ]
-
--- | Fibonacci function AST.
-runFibonacci :: [Ast]
-runFibonacci =
-  [ Define
-      "fibonacci"
-      ( Lambda
-          ["n"]
-          ( If
-              (Call (Var "<") [Var "n", Ast.Num 2])
-              (Ast.Num 1)
-              (Call (Var "+") [Call (Var "fibonacci") [Call (Var "-") [Var "n", Ast.Num 1]], Call (Var "fibonacci") [Call (Var "-") [Var "n", Ast.Num 2]]])
-          )
-      ),
-    Call (Var "fibonacci") [Ast.Num 10]
-  ]
 
 getAst :: Sexpr -> Maybe Ast
 getAst expr =
   getNum expr
+    <|> getOp expr
     <|> getSym expr
     <|> getVar expr
     <|> getBool expr
@@ -69,16 +42,32 @@ getNum :: Sexpr -> Maybe Ast
 getNum (Sexpr.Num n) = pure (Ast.Num n)
 getNum _ = Nothing
 
--- | Get a string from an SExpr.
 getSym :: Sexpr -> Maybe Ast
 getSym (Sexpr.Sym "") = Nothing
 getSym (Sexpr.Sym s@"define") = pure (Ast.Sym s)
-getSym s = getVar s
+getSym _ = Nothing
 
 getVar :: Sexpr -> Maybe Ast
 getVar (Sexpr.Sym "") = Nothing
 getVar (Sexpr.Sym s) = pure (Ast.Var s)
 getVar _ = Nothing
+
+getOp :: Sexpr -> Maybe Ast
+getOp (Sexpr.Sym "") = Nothing
+getOp (Sexpr.Sym s@"+") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"-") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"*") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"/") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"=") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"!=") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"<") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@">") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"<=") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@">=") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"&&") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"||") = pure (Ast.Op s)
+getOp (Sexpr.Sym s@"!") = pure (Ast.Op s)
+getOp _ = Nothing
 
 -- | Get a boolean from an SExpr.
 getBool :: Sexpr -> Maybe Ast
@@ -110,7 +99,7 @@ getIf (Sexpr.List [Sexpr.Sym "if", cond, thenExpr, elseExpr]) =
 getIf _ = Nothing
 
 getCall :: Sexpr -> Maybe Ast
-getCall (Sexpr.List (name : args)) = Ast.Call <$> getSym name <*> traverse getAst args
+getCall (Sexpr.List (name : args)) = Ast.Call <$> getAst name <*> traverse getAst args
 getCall _ = Nothing
 
 factorial :: [Sexpr]
