@@ -3,6 +3,7 @@
 module Eval
   ( emptyEnv,
     exec,
+    prelude,
   )
 where
 
@@ -17,6 +18,14 @@ type Env = Map.Map String Ast
 -- | An empty environment.
 emptyEnv :: Env
 emptyEnv = Map.empty
+
+prelude :: Env
+prelude =
+  Map.fromList
+    [ ("div", Lambda ["_a", "_b"] (Call (Op "/") [Var "_a", Var "_b"])),
+      ("mod", Lambda ["_a", "_b"] (Call (Op "%") [Var "_a", Var "_b"])),
+      ("eq?", Lambda ["_a", "_b"] (Call (Op "=") [Var "_a", Var "_b"]))
+    ]
 
 dispAtom :: Env -> Maybe Ast -> String
 dispAtom _ Nothing = "Nothing"
@@ -95,6 +104,7 @@ callOp "+" [Num a, Num b] = pure $ Num (a + b)
 callOp "-" [Num a, Num b] = pure $ Num (a - b)
 callOp "*" [Num a, Num b] = pure $ Num (a * b)
 callOp "/" [Num a, Num b] = pure $ Num (a `div` b)
+callOp "%" [Num a, Num b] = pure $ Num (a `mod` b)
 callOp "<" [Num a, Num b] = pure $ Bool (a < b)
 callOp ">" [Num a, Num b] = pure $ Bool (a > b)
 callOp "<=" [Num a, Num b] = pure $ Bool (a <= b)
