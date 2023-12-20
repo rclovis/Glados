@@ -1,6 +1,10 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Eval () where
+module Eval
+  ( emptyEnv,
+    exec,
+  )
+where
 
 import Ast (Ast (..))
 import Control.Applicative
@@ -14,15 +18,24 @@ type Env = Map.Map String Ast
 emptyEnv :: Env
 emptyEnv = Map.empty
 
+dispAtom :: Env -> Maybe Ast -> String
+dispAtom _ Nothing = "Nothing"
+dispAtom _ (Just (Num n)) = show n
+dispAtom _ (Just (Bool b)) = show b
+dispAtom _ (Just (Str s)) = show s
+dispAtom env (Just (Var s)) = case Map.lookup s env of
+  Just expr -> dispAtom env (Just expr)
+  Nothing -> error ("Could not find " <> s <> " in environment.")
+dispAtom _ _ = error "Not an atom."
+
 -- | Execute the program.
 exec :: Env -> [Ast] -> IO ()
 exec _ [] = putStrLn "Done."
 exec env ((Define name body) : asts) = do
   let env' = Map.insert name body env
-  _ <- putStrLn $ "Defined " <> name
   exec env' asts
+exec env [a] = putStrLn (dispAtom env $ eval env a)
 exec env (ast : asts) = do
-  print (eval env ast)
   exec env asts
 
 -- | Evaluate an Ast.
@@ -34,6 +47,7 @@ eval env expr =
     <|> evalBool env expr
     <|> evalStr env expr
     <|> evalVar env expr
+    <|> error ("Could not evaluate " <> show expr <> ".\nEnvironment: " <> show env <> ".")
 
 evalNum :: Env -> Ast -> Maybe Ast
 evalNum _ (Num n) = pure $ Num n
@@ -50,7 +64,8 @@ evalStr _ _ = Nothing
 -- | Evaluate a variable in the environment.
 evalVar :: Env -> Ast -> Maybe Ast
 evalVar env (Var s) = do
-  Map.lookup s env
+  expr <- Map.lookup s env
+  eval env expr
 evalVar _ _ = Nothing
 
 -- | Evaluate an if expression.
@@ -71,8 +86,7 @@ evalCall env (Call (Lambda params body) args) = do
   eval env' body
 evalCall env (Call (Var s) args) = do
   body <- Map.lookup s env
-  args' <- traverse (eval env) args
-  eval env (Call body args')
+  eval env (Call body args)
 evalCall _ _ = Nothing
 
 -- | Call an operator. May be logic or arithmetic.
@@ -85,7 +99,7 @@ callOp "<" [Num a, Num b] = pure $ Bool (a < b)
 callOp ">" [Num a, Num b] = pure $ Bool (a > b)
 callOp "<=" [Num a, Num b] = pure $ Bool (a <= b)
 callOp ">=" [Num a, Num b] = pure $ Bool (a >= b)
-callOp "==" [Num a, Num b] = pure $ Bool (a == b)
+callOp "=" [Num a, Num b] = pure $ Bool (a == b)
 callOp "!=" [Num a, Num b] = pure $ Bool (a /= b)
 callOp "&&" [Bool a, Bool b] = pure $ Bool (a && b)
 callOp "||" [Bool a, Bool b] = pure $ Bool (a || b)

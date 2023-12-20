@@ -2,7 +2,6 @@
 
 module Ast
   ( Ast (..),
-    getAst,
     genAst,
     factorial,
   )

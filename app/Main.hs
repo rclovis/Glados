@@ -1,12 +1,15 @@
 module Main (main) where
 
+import Ast (genAst)
+import Data.Maybe (fromJust)
+import Eval (emptyEnv, exec)
 import Lexer (tokenize)
 import Sexpr (parseSexpr)
 
 main :: IO ()
 main = do
-  file <- readFile "test.rkt"
+  file <- readFile "factorial.csm"
   let tokens = tokenize file
-  print tokens
   let sex = parseSexpr tokens
-  print sex
+  let ast = genAst sex
+  exec emptyEnv (fromJust ast)
