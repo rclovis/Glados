@@ -3,3 +3,4 @@
 *.rkt
 glados.cabal
 dist-newstyle/
+factorial.csm
