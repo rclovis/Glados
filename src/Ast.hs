@@ -33,6 +33,7 @@ getAst expr =
     <|> getStr expr
     <|> getDefine expr
     <|> getIf expr
+    <|> getLamdba expr
     <|> getCall expr
 
 -- | Gen program
@@ -103,6 +104,11 @@ getIf _ = Nothing
 getCall :: Sexpr -> Maybe Ast
 getCall (Sexpr.List (name : args)) = Ast.Call <$> getAst name <*> traverse getAst args
 getCall _ = Nothing
+
+getLamdba :: Sexpr -> Maybe Ast
+getLamdba (Sexpr.List [Sexpr.Sym "lambda", Sexpr.List args, expr]) =
+  Ast.Lambda <$> getArgs args <*> getAst expr
+getLamdba _ = Nothing
 
 factorial :: [Sexpr]
 factorial =
