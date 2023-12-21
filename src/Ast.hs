@@ -19,7 +19,7 @@ data Ast
   | Var String
   | Str String
   | Op String
-  | Num Integer
+  | Num Int
   | Bool Bool
   deriving (Eq, Ord, Show)
 

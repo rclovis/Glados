@@ -7,7 +7,7 @@ where
 import Lexer (Token (..))
 
 data Sexpr
-  = Num Integer
+  = Num Int
   | Str String
   | Bool Bool
   | Sym String
