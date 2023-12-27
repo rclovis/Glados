@@ -8,8 +8,10 @@ import Sexpr (parseSexpr)
 
 main :: IO ()
 main = do
-  file <- readFile "factorial.csm"
+  file <- readFile "testCode"
   let tokens = tokenize file
-  let sex = parseSexpr tokens
-  let ast = genAst sex
-  exec prelude (fromJust ast)
+  -- print tokens
+  print $ parseSexpr tokens
+  -- let sex = parseSexpr tokens
+  -- let ast = genAst sex
+  -- exec prelude (fromJust ast)

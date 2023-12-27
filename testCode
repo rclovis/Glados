@@ -1,0 +1,8 @@
+
+var variable: i32 = 0;
+
+funk fonction (): i32
+{
+	var variable: i32 = 0;
+  variable;
+}

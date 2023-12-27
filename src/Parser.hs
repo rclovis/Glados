@@ -15,6 +15,7 @@ module Parser
     parseList,
     parseNothing,
     parseInteger,
+    parseQuantity,
   )
 where
 
@@ -124,6 +125,16 @@ parseMany (Parser p) = Parser f
 
 parseSome :: Parser a -> Parser [a]
 parseSome p = (:) <$> p <*> parseMany p
+
+parseQuantity :: Parser a -> Int -> Parser [a]
+parseQuantity _ 0 = pure []
+parseQuantity (Parser p) n = Parser f
+  where
+    f s = case p s of
+      Just (x, s') -> case runParser (parseQuantity (Parser p) (n - 1)) s' of
+        Just (xs, s'') -> Just (x : xs, s'')
+        Nothing -> Nothing
+      Nothing -> Nothing
 
 parseNothing :: Parser ()
 parseNothing = Parser f
