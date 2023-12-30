@@ -19,7 +19,8 @@ data Ast
   | Var String
   | Str String
   | Op String
-  | Num Int
+  | INum Int
+  | FNum Float
   | Bool Bool
   deriving (Eq, Ord, Show)
 
@@ -42,7 +43,8 @@ genAst = traverse getAst
 
 -- | Get a number from an SExpr.
 getNum :: Sexpr -> Maybe Ast
-getNum (Sexpr.Num n) = pure (Ast.Num n)
+getNum (Sexpr.INum n) = pure (Ast.INum n)
+getNum (Sexpr.FNum n) = pure (Ast.FNum n)
 getNum _ = Nothing
 
 getSym :: Sexpr -> Maybe Ast
@@ -120,19 +122,19 @@ factorial =
             List
               [ Sexpr.Sym "=",
                 Sexpr.Sym "n",
-                Sexpr.Num 0
+                Sexpr.INum 0
               ],
-            Sexpr.Num 1,
+            Sexpr.INum 1,
             List
               [ Sexpr.Sym "*",
                 Sexpr.Sym "n",
                 List
                   [ Sexpr.Sym "factorial",
-                    List [Sexpr.Sym "-", Sexpr.Sym "n", Sexpr.Num 1]
+                    List [Sexpr.Sym "-", Sexpr.Sym "n", Sexpr.INum 1]
                   ]
               ]
           ]
       ],
     List
-      [Sexpr.Sym "factorial", Sexpr.Num 10]
+      [Sexpr.Sym "factorial", Sexpr.INum 10]
   ]

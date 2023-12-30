@@ -7,7 +7,8 @@ where
 import Lexer (Token (..))
 
 data Sexpr
-  = Num Int
+  = INum Int
+  | FNum Float
   | Str String
   | Bool Bool
   | Sym String
@@ -27,7 +28,8 @@ parseExpr (OpenPar : restTokens) = parseListSexpr restTokens []
 parseExpr ((Symbol a) : restTokens) = (Sym a, restTokens)
 parseExpr ((String a) : restTokens) = (Str a, restTokens)
 parseExpr ((Boolean a) : restTokens) = (Bool a, restTokens)
-parseExpr ((Number a) : restTokens) = (Num a, restTokens)
+parseExpr ((INumber a) : restTokens) = (INum a, restTokens)
+parseExpr ((FNumber a) : restTokens) = (FNum a, restTokens)
 parseExpr (ClosePar : _) = error "Unexpected ClosePar encountered"
 parseExpr (Null : _) = error "Unexpected Null encountered"
 parseExpr [] = error "Invalid expression"

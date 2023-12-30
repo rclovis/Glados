@@ -1,0 +1,15 @@
+funk factorial(n: i32): i32
+{
+	if (n == 0 || n == 1) {
+        1
+    } else {
+        var result: i32 = 1;
+        var i: i32 = 2;
+        while (i <= n) {
+	        result = result * i;
+	        i = i + 1;
+        }
+        result
+	}
+}
+factorial(5);

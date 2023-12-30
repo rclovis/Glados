@@ -14,13 +14,14 @@ module Parser
     parseInt,
     parseList,
     parseNothing,
-    parseInteger,
+    parseQuantity,
+    parseFloat,
+    parseUFloat,
   )
 where
 
 import Control.Applicative (Alternative (..))
-
--- import Text.ParserCombinators.ReadP (between, sepBy)
+import Text.Read (readMaybe)
 
 newtype Parser a = Parser
   { runParser :: String -> Maybe (a, String)
@@ -125,6 +126,16 @@ parseMany (Parser p) = Parser f
 parseSome :: Parser a -> Parser [a]
 parseSome p = (:) <$> p <*> parseMany p
 
+parseQuantity :: Parser a -> Int -> Parser [a]
+parseQuantity _ 0 = pure []
+parseQuantity (Parser p) n = Parser f
+  where
+    f s = case p s of
+      Just (x, s') -> case runParser (parseQuantity (Parser p) (n - 1)) s' of
+        Just (xs, s'') -> Just (x : xs, s'')
+        Nothing -> Nothing
+      Nothing -> Nothing
+
 parseNothing :: Parser ()
 parseNothing = Parser f
   where
@@ -136,8 +147,17 @@ parseUInt = read <$> parseSome (parseAnyChar ['0' .. '9'])
 parseInt :: Parser Int
 parseInt = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUInt
 
-parseInteger :: Parser Integer
-parseInteger = read <$> parseSome (parseAnyChar ['0' .. '9'])
+parseUFloat :: Parser Float
+parseUFloat = do
+  int <- parseUInt
+  _ <- parseChar '.'
+  dec <- parseUInt <|> pure 0
+  let dec' = fromIntegral dec
+  let len = length (show dec)
+  return (fromIntegral int + dec' / (10 ^ len))
+
+parseFloat :: Parser Float
+parseFloat = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUFloat
 
 parseTrim :: Parser a -> Parser b -> Parser a
 parseTrim separator trim = do separator <* parseMany trim <|> parseMany trim *> separator <* parseMany trim

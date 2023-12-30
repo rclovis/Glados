@@ -12,6 +12,9 @@ import Parser
     parseString,
     parseUInt,
     runParser,
+    parseQuantity,
+    parseFloat,
+    parseUFloat,
   )
 import Test.HUnit
 
@@ -109,6 +112,40 @@ parseListTest = TestCase $ do
   assertEqual "parseListTest" Nothing (runParser (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt) "(  3f )")
   assertEqual "parseListTest" (Just ([[1, 2], [1, 2]], "")) (runParser (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') (parseList (parseChar '(') (parseChar ')') (parseChar ' ') (parseChar ' ') parseInt)) "(  (1  2 ) ( 1 2) )")
 
+parseQuantityTest :: Test
+parseQuantityTest = TestCase $ do
+  assertEqual "parseQuantityTest" (Just ("aaa", "")) (runParser (parseQuantity (parseChar 'a') 3) "aaa")
+  assertEqual "parseQuantityTest" (Just ("aa", "a")) (runParser (parseQuantity (parseChar 'a') 2) "aaa")
+  assertEqual "parseQuantityTest" (Just ("a", "aa")) (runParser (parseQuantity (parseChar 'a') 1) "aaa")
+  assertEqual "parseQuantityTest" (Just ("", "aaa")) (runParser (parseQuantity (parseChar 'a') 0) "aaa")
+  assertEqual "parseQuantityTest" (Just ("a", "daa")) (runParser (parseQuantity (parseChar 'a') 1) "adaa")
+  assertEqual "parseQuantityTest" Nothing (runParser (parseQuantity (parseChar 'a') 1) "ddaa")
+  assertEqual "parseQuantityTest" Nothing (runParser (parseQuantity (parseChar 'a') 2) "adaa")
+  assertEqual "parseQuantityTest" Nothing (runParser (parseQuantity (parseChar 'a') 1) "")
+
+parseUFloatTest :: Test
+parseUFloatTest = TestCase $ do
+  assertEqual "parseUFloatTest" (Just (123.0, "foobar")) (runParser parseUFloat "123.0foobar")
+  assertEqual "parseUFloatTest" (Just (123.0, "foobar")) (runParser parseUFloat "123.foobar")
+  assertEqual "parseUFloatTest" (Just (123.445, "foobar")) (runParser parseUFloat "123.445foobar")
+  assertEqual "parseUFloatTest" Nothing (runParser parseUFloat "foobar")
+  assertEqual "parseUFloatTest" (Just (123.0, "foobar")) (runParser parseUFloat "0123.foobar")
+  assertEqual "parseUFloatTest" (Just (0.0, "u123.foobar")) (runParser parseUFloat "0.u123.foobar")
+  assertEqual "parseUFloatTest" Nothing (runParser parseUFloat "d0u123.foobar")
+
+parseFloatTest :: Test
+parseFloatTest = TestCase $ do
+  assertEqual "parseFloatTest" (Just (123.0, "foobar")) (runParser parseFloat "123.0foobar")
+  assertEqual "parseFloatTest" (Just (-123.0, "foobar")) (runParser parseFloat "-123.0foobar")
+  assertEqual "parseFloatTest" (Just (-12.0, "-3foobar")) (runParser parseFloat "-12.0-3foobar")
+  assertEqual "parseFloatTest" (Just (12.0, "-3foobar")) (runParser parseFloat "12.0-3foobar")
+  assertEqual "parseFloatTest" (Just (0.0, "foobar")) (runParser parseFloat "-0.0foobar")
+  assertEqual "parseFloatTest" (Just (123.0, "foobar")) (runParser parseFloat "+123.0foobar")
+  assertEqual "parseFloatTest" Nothing (runParser parseFloat "foobar")
+  assertEqual "parseFloatTest" (Just (123.0, "foobar")) (runParser parseFloat "0123.0foobar")
+  assertEqual "parseFloatTest" (Just (0.0, "u123.0foobar")) (runParser parseFloat "0.u123.0foobar")
+  assertEqual "parseFloatTest" Nothing (runParser parseFloat "d0u123.0foobar")
+
 tests :: Test
 tests =
   TestList
@@ -122,7 +159,10 @@ tests =
       TestLabel "ParseSomeTest" parseSomeTest,
       TestLabel "ParseUIntTest" parseUIntTest,
       TestLabel "ParseIntTest" parseIntTest,
-      TestLabel "ParseListTest" parseListTest
+      TestLabel "ParseListTest" parseListTest,
+      TestLabel "ParseQuantityTest" parseQuantityTest,
+      TestLabel "ParseUFloatTest" parseUFloatTest,
+      TestLabel "ParseFloatTest" parseFloatTest
     ]
 
 main :: IO ()

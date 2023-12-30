@@ -29,7 +29,8 @@ prelude =
 
 dispAtom :: Env -> Maybe Ast -> String
 dispAtom _ Nothing = "Nothing"
-dispAtom _ (Just (Num n)) = show n
+dispAtom _ (Just (INum n)) = show n
+dispAtom _ (Just (FNum n)) = show n
 dispAtom _ (Just (Bool b)) = show b
 dispAtom _ (Just (Str s)) = show s
 dispAtom env (Just (Var s)) = case Map.lookup s env of
@@ -59,7 +60,8 @@ eval env expr =
     <|> error ("Could not evaluate " <> show expr <> ".\nEnvironment: " <> show env <> ".")
 
 evalNum :: Env -> Ast -> Maybe Ast
-evalNum _ (Num n) = pure $ Num n
+evalNum _ (INum n) = pure $ INum n
+evalNum _ (FNum n) = pure $ FNum n
 evalNum _ _ = Nothing
 
 evalBool :: Env -> Ast -> Maybe Ast
@@ -100,17 +102,17 @@ evalCall _ _ = Nothing
 
 -- | Call an operator. May be logic or arithmetic.
 callOp :: String -> [Ast] -> Maybe Ast
-callOp "+" [Num a, Num b] = pure $ Num (a + b)
-callOp "-" [Num a, Num b] = pure $ Num (a - b)
-callOp "*" [Num a, Num b] = pure $ Num (a * b)
-callOp "/" [Num a, Num b] = pure $ Num (a `div` b)
-callOp "%" [Num a, Num b] = pure $ Num (a `mod` b)
-callOp "<" [Num a, Num b] = pure $ Bool (a < b)
-callOp ">" [Num a, Num b] = pure $ Bool (a > b)
-callOp "<=" [Num a, Num b] = pure $ Bool (a <= b)
-callOp ">=" [Num a, Num b] = pure $ Bool (a >= b)
-callOp "=" [Num a, Num b] = pure $ Bool (a == b)
-callOp "!=" [Num a, Num b] = pure $ Bool (a /= b)
+callOp "+" [INum a, INum b] = pure $ INum (a + b)
+callOp "-" [INum a, INum b] = pure $ INum (a - b)
+callOp "*" [INum a, INum b] = pure $ INum (a * b)
+callOp "/" [INum a, INum b] = pure $ INum (a `div` b)
+callOp "%" [INum a, INum b] = pure $ INum (a `mod` b)
+callOp "<" [INum a, INum b] = pure $ Bool (a < b)
+callOp ">" [INum a, INum b] = pure $ Bool (a > b)
+callOp "<=" [INum a, INum b] = pure $ Bool (a <= b)
+callOp ">=" [INum a, INum b] = pure $ Bool (a >= b)
+callOp "=" [INum a, INum b] = pure $ Bool (a == b)
+callOp "!=" [INum a, INum b] = pure $ Bool (a /= b)
 callOp "&&" [Bool a, Bool b] = pure $ Bool (a && b)
 callOp "||" [Bool a, Bool b] = pure $ Bool (a || b)
 callOp "!" [Bool a] = pure $ Bool (not a)
