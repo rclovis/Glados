@@ -11,7 +11,7 @@ main = do
   file <- readFile "testCode"
   let tokens = tokenize file
   -- print tokens
-  print $ parseSexpr tokens
+  print $ tokens
   -- let sex = parseSexpr tokens
   -- let ast = genAst sex
   -- exec prelude (fromJust ast)

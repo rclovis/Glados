@@ -23,13 +23,16 @@ import Parser
     parseUInt,
     runParser,
     parseQuantity,
+    parseFloat,
+    parseUFloat,
   )
 
 data Token
   = ClosePar
   | OpenPar
   | Symbol String
-  | Number Int
+  | INumber Int
+  | FNumber Float
   | String String
   | Boolean Bool
   | Null
@@ -50,8 +53,11 @@ parseSimpleSymbol = fmap Symbol (parseQuantity (parseAnyChar "+-*/%={}[]().;:!")
 parseSymbol :: Parser Token
 parseSymbol = fmap Symbol (parseSome (parseAnyChar (printableChar ") \t\n\"+-*/%={}[]().;:!")))
 
-parseNumber :: Parser Token
-parseNumber = fmap Number parseInt
+parseiNumber :: Parser Token
+parseiNumber = fmap INumber parseInt
+
+parsefNumber :: Parser Token
+parsefNumber = fmap FNumber parseFloat
 
 parseStringLex :: Parser Token
 parseStringLex = fmap String (parseChar '"' *> parseMany (parseAndWith (\_ y -> y) (parseChar '\\') (parseChar '\"') <|> parseAnyChar (printableChar "\"")) <* parseChar '"')
@@ -63,7 +69,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseBoolean <|> parseNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of

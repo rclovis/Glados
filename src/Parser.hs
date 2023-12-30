@@ -16,12 +16,13 @@ module Parser
     parseNothing,
     parseInteger,
     parseQuantity,
+    parseFloat,
+    parseUFloat,
   )
 where
 
 import Control.Applicative (Alternative (..))
-
--- import Text.ParserCombinators.ReadP (between, sepBy)
+import Text.Read (readMaybe)
 
 newtype Parser a = Parser
   { runParser :: String -> Maybe (a, String)
@@ -146,6 +147,18 @@ parseUInt = read <$> parseSome (parseAnyChar ['0' .. '9'])
 
 parseInt :: Parser Int
 parseInt = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUInt
+
+parseUFloat :: Parser Float
+parseUFloat = do
+  int <- parseUInt
+  _ <- parseChar '.'
+  dec <- parseUInt
+  let dec' = fromIntegral dec
+  let len = length (show dec)
+  return (fromIntegral int + dec' / (10 ^ len))
+
+parseFloat :: Parser Float
+parseFloat = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUFloat
 
 parseInteger :: Parser Integer
 parseInteger = read <$> parseSome (parseAnyChar ['0' .. '9'])
