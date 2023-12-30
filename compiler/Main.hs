@@ -1,10 +1,10 @@
 module Main (main) where
 
-import Ast (genAst)
+-- import Ast (genAst)
 import Data.Maybe (fromJust)
-import Eval (emptyEnv, exec, prelude)
+-- import Eval (emptyEnv, exec, prelude)
 import Lexer (tokenize)
-import Sexpr (parseSexpr)
+-- import Sexpr (parseSexpr)
 import System.Environment (getArgs)
 
 main :: IO ()
