@@ -13,7 +13,6 @@ import Parser
     parseAnyChar,
     parseChar,
     parseInt,
-    parseInteger,
     parseList,
     parseMany,
     parseNothing,
@@ -63,7 +62,7 @@ parseStringLex :: Parser Token
 parseStringLex = fmap String (parseChar '"' *> parseMany (parseAndWith (\_ y -> y) (parseChar '\\') (parseChar '\"') <|> parseAnyChar (printableChar "\"")) <* parseChar '"')
 
 parseBoolean :: Parser Token
-parseBoolean = fmap Boolean (parseOr (fmap (const True) (parseString "#t")) (fmap (const False) (parseString "#f")))
+parseBoolean = fmap Boolean (parseOr (fmap (const True) (parseString "true")) (fmap (const False) (parseString "false")))
 
 parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
@@ -75,20 +74,3 @@ tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
   Just (t, "") -> Just t
   _ -> Nothing
-
--- printToken :: Token -> IO ()
--- printToken ClosePar = putStrLn "ClosePar"
--- printToken OpenPar = putStrLn "OpenPar"
--- printToken (Symbol s) = putStrLn ("Symbol " ++ s)
--- printToken (Number n) = putStrLn ("Number " ++ show n)
--- printToken (String s) = putStrLn ("String " ++ s)
--- printToken (Boolean b) = putStrLn ("Boolean " ++ show b)
-
--- printTokens :: Maybe [Token] -> IO ()
--- printTokens (Just tokens) = mapM_ printToken tokens
--- printTokens Nothing = putStrLn "Nothing"
-
--- mainTokenize :: IO ()
--- mainTokenize = do
---   file <- readFile "test.rkt"
---   printTokens (tokenize file)

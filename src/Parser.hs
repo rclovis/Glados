@@ -14,7 +14,6 @@ module Parser
     parseInt,
     parseList,
     parseNothing,
-    parseInteger,
     parseQuantity,
     parseFloat,
     parseUFloat,
@@ -152,16 +151,13 @@ parseUFloat :: Parser Float
 parseUFloat = do
   int <- parseUInt
   _ <- parseChar '.'
-  dec <- parseUInt
+  dec <- parseUInt <|> pure 0
   let dec' = fromIntegral dec
   let len = length (show dec)
   return (fromIntegral int + dec' / (10 ^ len))
 
 parseFloat :: Parser Float
 parseFloat = (((negate <$ parseChar '-') <|> (id <$ parseChar '+')) <|> pure id) <*> parseUFloat
-
-parseInteger :: Parser Integer
-parseInteger = read <$> parseSome (parseAnyChar ['0' .. '9'])
 
 parseTrim :: Parser a -> Parser b -> Parser a
 parseTrim separator trim = do separator <* parseMany trim <|> parseMany trim *> separator <* parseMany trim
