@@ -33,12 +33,12 @@ add(5, 6)
 
 ```
 ; Bytecode for the add function
-funk_6             ; Declares a function of 6 instructions
-iload_0            ; Load argument a
-iload_1            ; Load argument b
+funk_26            ; Declares a function of 26 bytes in 6 instructions
+iload_4_0         ; Load argument a of size 4 bytes
+iload_4_1         ; Load argument b of size 4 bytes
 iadd               ; Add a and b
-istore_2           ; Store the result in local variable 2 (c)
-iload_2            ; Load the result
+istore_4_2        ; Store the result in local variable 2 (c)
+iload_4_2         ; Load the result
 return             ; Return the result
 
 ; Bytecode for invoking the add function
@@ -69,7 +69,7 @@ factorial(5);
 
 ```
 ; Bytecode for the add function
-funk_6
+funk_
 iload_0
 iconst_0
 ieq
