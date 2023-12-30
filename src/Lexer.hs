@@ -56,6 +56,7 @@ data Token
   | Else
   | While
   | Break
+  | End
   | Funk
   | Type TypeParsed
   | Identifier String
@@ -112,6 +113,9 @@ parseWhile = fmap (const While) (parseString "while")
 parseBreak :: Parser Token
 parseBreak = fmap (const Break) (parseString "break")
 
+parseEnd :: Parser Token
+parseEnd = fmap (const End) (parseChar ';')
+
 parseIdentifier :: Parser Token
 parseIdentifier = fmap Identifier (parseAndWith (++) (parseQuantity (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['_'])) 1) (parseMany (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['_']))))
 
@@ -137,7 +141,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseEnd <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
