@@ -40,14 +40,29 @@ library
     , containers
   default-language: Haskell2010
 
-executable glados-exe
+executable compiler-exe
   main-is: Main.hs
   other-modules:
       Paths_glados
   autogen-modules:
       Paths_glados
   hs-source-dirs:
-      app
+      compiler
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , glados
+  default-language: Haskell2010
+
+executable vm-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_glados
+  autogen-modules:
+      Paths_glados
+  hs-source-dirs:
+      vm
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5

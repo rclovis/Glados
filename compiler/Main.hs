@@ -5,10 +5,12 @@ import Data.Maybe (fromJust)
 import Eval (emptyEnv, exec, prelude)
 import Lexer (tokenize)
 import Sexpr (parseSexpr)
+import System.Environment (getArgs)
 
 main :: IO ()
 main = do
-  file <- readFile "testCode"
+  fileNames <- getArgs
+  file <- readFile (head fileNames)
   let tokens = tokenize file
   -- print tokens
   print $ tokens
