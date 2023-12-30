@@ -55,6 +55,7 @@ data Token
   | If
   | Else
   | While
+  | Break
   | Funk
   | Type TypeParsed
   | Identifier String
@@ -88,7 +89,7 @@ parseOpenBrace :: Parser Token
 parseOpenBrace = fmap (const OpenBrace) (parseChar '{')
 
 parseType :: Parser Token
-parseType = fmap Type ((fmap (const I8) (parseString "i8")) <|> (fmap (const I16) (parseString "i16")) <|> (fmap (const I32) (parseString "i32")) <|> (fmap (const I64) (parseString "i64")) <|> (fmap (const F32) (parseString "f32")) <|> (fmap (const F64) (parseString "f64")) <|> (fmap (const ISize) (parseString "isize")) <|> (fmap (const U8) (parseString "u8")) <|> (fmap (const U16) (parseString "u16")) <|> (fmap (const U32) (parseString "u32")) <|> (fmap (const U64) (parseString "u64")) <|> (fmap (const USize) (parseString "usize")) <|> (fmap (const Bool) (parseString "bool")))
+parseType = fmap Type (fmap (const I8) (parseString "i8") <|> fmap (const I16) (parseString "i16") <|> fmap (const I32) (parseString "i32") <|> fmap (const I64) (parseString "i64") <|> fmap (const F32) (parseString "f32") <|> fmap (const F64) (parseString "f64") <|> fmap (const ISize) (parseString "isize") <|> fmap (const U8) (parseString "u8") <|> fmap (const U16) (parseString "u16") <|> fmap (const U32) (parseString "u32") <|> fmap (const U64) (parseString "u64") <|> fmap (const USize) (parseString "usize") <|> fmap (const Bool) (parseString "bool"))
 
 parseFunk :: Parser Token
 parseFunk = fmap (const Funk) (parseString "funk")
@@ -108,8 +109,11 @@ parseElse = fmap (const Else) (parseString "else")
 parseWhile :: Parser Token
 parseWhile = fmap (const While) (parseString "while")
 
+parseBreak :: Parser Token
+parseBreak = fmap (const Break) (parseString "break")
+
 parseIdentifier :: Parser Token
-parseIdentifier = fmap Identifier (parseAndWith (\x y -> x ++ y) (parseQuantity (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['_'])) 1) (parseMany (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['_']))))
+parseIdentifier = fmap Identifier (parseAndWith (++) (parseQuantity (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['_'])) 1) (parseMany (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['_']))))
 
 parseSimpleSymbol :: Parser Token
 parseSimpleSymbol = fmap Symbol (parseQuantity (parseAnyChar "+-*/%{}[]().;:") 1)
@@ -133,7 +137,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseType <|> parseIdentifier <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
