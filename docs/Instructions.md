@@ -1,14 +1,14 @@
 1. **Memory Management Instructions:**
 	- `iload`, `uload`, `fload`: Load an integer, unsigned integer or float from a local variable onto the operand stack. It takes the index and the size of the variable as arguments.
 	- `istore`, `ustore`, `fstore`: Store an integer, unsigned integer or float at the top of the operand stack, into a local variable. It takes the index and the size of the variable as arguments.
-	- `iconst`, `uconst`, `fconst`: Load an integer, unsigned integer or float from an argument onto the operand stack. It takes the index and the size of the variable as arguments.
+	- `iconst`, `uconst`, `fconst`: Load an integer, unsigned integer or float from an argument onto the operand stack. It takes  and the size of the variable and the variable as arguments.
 	- `funk`: Creates a function with a number of instructions, written in bytes (8bits) as argument
 2. **Arithmetic Instructions:**
     - `iadd`, `fadd`: Add two (unsigned) integers or floats.
     - `isub`, `fsub`: Subtract two (unsigned) integers or floats.
     - `imul`, `fmul`: Multiply two (unsigned) integers or floats.
     - `idiv`, `fdiv`: Divide two (unsigned) integers or floats.
-    - `irem`: Remainder after integer division.
+    - `imod`: Remainder after integer division.
 3. **Comparison and Conditional Instructions:**
     - `ieq`, `ine`, `ilt`, `igt`, `ile`, `ige`: Compare two (unsigned) integers. (==, !=, <, >, <=, >=)
     - `feq`, `fne`, `flt`, `fgt`, `fle`, `fge`: Compare two floats. (==, !=, <, >, <=, >=)
