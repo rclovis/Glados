@@ -29,6 +29,10 @@ import Parser
 data Token
   = ClosePar
   | OpenPar
+  | CloseBracket
+  | OpenBracket
+  | CloseBrace
+  | OpenBrace
   | Symbol String
   | INumber Int
   | FNumber Float
@@ -45,6 +49,18 @@ parseClosePar = fmap (const ClosePar) (parseChar ')')
 
 parseOpenPar :: Parser Token
 parseOpenPar = fmap (const OpenPar) (parseChar '(')
+
+parseCloseBracket :: Parser Token
+parseCloseBracket = fmap (const CloseBracket) (parseChar ']')
+
+parseOpenBracket :: Parser Token
+parseOpenBracket = fmap (const OpenBracket) (parseChar '[')
+
+parseCloseBrace :: Parser Token
+parseCloseBrace = fmap (const CloseBrace) (parseChar '}')
+
+parseOpenBrace :: Parser Token
+parseOpenBrace = fmap (const OpenBrace) (parseChar '{')
 
 parseSimpleSymbol :: Parser Token
 parseSimpleSymbol = fmap Symbol (parseQuantity (parseAnyChar "+-*/%={}[]().;:!") 1)
@@ -68,7 +84,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
