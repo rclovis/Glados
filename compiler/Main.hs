@@ -7,6 +7,8 @@ import Lexer (tokenize)
 -- import Sexpr (parseSexpr)
 import System.Environment (getArgs)
 
+import Bytecode (toHexa, bytecode, getBinHexa, floatToHex)
+
 main :: IO ()
 main = do
   fileNames <- getArgs
@@ -17,3 +19,4 @@ main = do
   -- let sex = parseSexpr tokens
   -- let ast = genAst sex
   -- exec prelude (fromJust ast)
+  print $ getBinHexa bytecode 

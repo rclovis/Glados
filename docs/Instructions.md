@@ -38,7 +38,7 @@
 | 0x19 ... 0x1E | `feq`, `fne`, `flt`, `fgt`, `fle`, `fge` | False          |
 | 0x1F, 0x20    | `ift`, `iff`                             | True          |
 | 0x21          | `goto`                                   | True          |
-| 0x22 ... 0x24 | `iand`, `ior`, `ixor`                    | False          |
+| 0x22 ... 0x24 | `iand`, `ior`, `ixor`                    | False         |
 | 0x25          | `invoke`                                 | True          |
 | 0x26          | `return`                                 | False          |
 | 0x27, 0x28    | `i2f`, `f2i`                             | False          |
