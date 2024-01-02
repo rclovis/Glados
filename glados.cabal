@@ -25,6 +25,7 @@ library
   exposed-modules:
       Ast
       Eval
+      EvalVm
       Lexer
       Parser
       Sexpr

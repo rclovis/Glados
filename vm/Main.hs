@@ -1,8 +1,10 @@
 module Main (main) where
 import System.Environment (getArgs)
+import EvalVm (vmToken)
 
 main :: IO ()
 main = do
   fileNames <- getArgs
   file <- readFile (head fileNames)
-  print file
+  let tokens = vmToken file
+  print $ tokens

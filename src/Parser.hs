@@ -17,11 +17,15 @@ module Parser
     parseQuantity,
     parseFloat,
     parseUFloat,
+    parseOneChar,
+    parseByte,
   )
 where
 
 import Control.Applicative (Alternative (..))
 import Text.Read (readMaybe)
+import Data.Char
+
 
 newtype Parser a = Parser
   { runParser :: String -> Maybe (a, String)
@@ -79,6 +83,20 @@ parseChar c = Parser f
       | otherwise = Nothing
     f [] = Nothing
 
+parseByte :: Int -> Parser Int
+parseByte n = Parser f
+  where
+    f (x : xs)
+      | ord x == n = Just (n, xs)
+      | otherwise = Nothing
+    f [] = Nothing
+
+parseOneChar :: Parser Char
+parseOneChar = Parser f
+  where
+    f (x : xs) = Just (x, xs)
+    f [] = Nothing
+
 parseString :: String -> Parser String
 parseString s = Parser f
   where
@@ -94,6 +112,7 @@ parseAnyChar s = Parser f
       | x `elem` s = Just (x, xs)
       | otherwise = Nothing
     f [] = Nothing
+
 
 parseOr :: Parser a -> Parser a -> Parser a
 parseOr p1 p2 = p1 <|> p2
