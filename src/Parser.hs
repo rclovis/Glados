@@ -23,7 +23,6 @@ module Parser
 where
 
 import Control.Applicative (Alternative (..))
-import Text.Read (readMaybe)
 import Data.Char
 
 
