@@ -1,4 +1,4 @@
-module Bytecode ( toHexa, bytecode, getBinHexa, floatToHex) where
+module Bytecode ( toHexa, bytecode, getBinHexa, floatToHex, getIEEE, getHumanReadable, getFloatFromHex) where
 
 import Data.Char (digitToInt, intToDigit)
 
@@ -8,7 +8,7 @@ data Bytecode
     | Fload Int Int -- load float from stack
     | Uload Int Int -- load uint from stack
     | Istore Int Int -- store int to stack
-    | Fstore Int Int -- store float to stacktraverse toBinHexa xs
+    | Fstore Int Int -- store float to stacktraverse toBin xs
     | Ustore Int Int -- store uint to stack
     | Iconst Int Int -- push int to stack
     | Fconst Int Float -- push float to stack
@@ -44,6 +44,7 @@ data Bytecode
     | Return -- return from function
     | I2f -- convert int to float
     | F2i -- convert float to int
+    | NOTHING -- do nothing
 
 toHex :: [Char] -> [Char]
 toHex [] = []
@@ -119,101 +120,92 @@ toHexa n
 padZeros :: Int -> [Char] -> [Char]
 padZeros len str = replicate (max 0 (len - length str)) '0' ++ str
 
-getBinHexa :: [Bytecode] -> [Char]
-getBinHexa = concatMap toBinHexa
+getBin :: [Bytecode] -> [Char]
+getBin = concatMap toBin
 
-toBinHexa :: Bytecode -> [Char]
-toBinHexa (Funk a b) = "00" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Iload a b) = "01" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Fload a b) = "02" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Uload a b) = "03" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Istore a b) = "04" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Fstore a b) = "05" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Ustore a b) = "06" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Iconst a b) = "07" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Fconst a b) = "08" ++ outputWell 1 a ++ floatToHex b ++ " " -- to do : float
-toBinHexa (Uconst a b) = "09" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa Iadd = "0A "
-toBinHexa Fadd = "0B "
-toBinHexa Isub = "0C "
-toBinHexa Fsub = "0D "
-toBinHexa Imul = "0E "
-toBinHexa Fmul = "0F "
-toBinHexa Idiv = "10 "
-toBinHexa Fdiv = "11 "
-toBinHexa Imod = "12 "
-toBinHexa Ieq = "13 "
-toBinHexa Feq = "14 "
-toBinHexa Ineq = "15 "
-toBinHexa Fneq = "16 "
-toBinHexa Igt = "17 "
-toBinHexa Fgt = "18 "
-toBinHexa Ilt = "19 "
-toBinHexa Flt = "1A "
-toBinHexa Ige = "1B "
-toBinHexa Fge = "1C "
-toBinHexa Ile = "1D "
-toBinHexa Fle = "1E "
-toBinHexa Iand = "1F "
-toBinHexa Ior = "20 "
-toBinHexa Ixor = "21 "
-toBinHexa (Ift a b) = "22" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Iff a b) = "23" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Goto a b) = "24" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa (Invoke a b) = "25" ++ outputWell 1 a ++ outputWell a b ++ " "
-toBinHexa Return = "26 "
-toBinHexa I2f = "27 "
-toBinHexa F2i = "28 "
+toBin :: Bytecode -> [Char]
+toBin (Funk a b) = chr 0 ++ chr a ++ chr b
 
 
--- toBinHexa :: Bytecode -> [Char]
--- toBinHexa (Funk a b) = "00" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Iload a b) = "01" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Fload a b) = "02" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Uload a b) = "03" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Istore a b) = "04" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Fstore a b) = "05" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Ustore a b) = "06" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Iconst a b) = "07" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Fconst a b) = "08" ++ outputWell 1 a ++ outputWell a (truncate b) -- to do : float
--- toBinHexa (Uconst a b) = "09" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa Iadd = "0A"
--- toBinHexa Fadd = "0B"
--- toBinHexa Isub = "0C"
--- toBinHexa Fsub = "0D"
--- toBinHexa Imul = "0E"
--- toBinHexa Fmul = "0F"
--- toBinHexa Idiv = "10"
--- toBinHexa Fdiv = "11"
--- toBinHexa Imod = "12"
--- toBinHexa Ieq = "13"
--- toBinHexa Feq = "14"
--- toBinHexa Ineq = "15"
--- toBinHexa Fneq = "16"
--- toBinHexa Igt = "17"
--- toBinHexa Fgt = "18"
--- toBinHexa Ilt = "19"
--- toBinHexa Flt = "1A"
--- toBinHexa Ige = "1B"
--- toBinHexa Fge = "1C"
--- toBinHexa Ile = "1D"
--- toBinHexa Fle = "1E"
--- toBinHexa Iand = "1F"
--- toBinHexa Ior = "20"
--- toBinHexa Ixor = "21"
--- toBinHexa (Ift a b) = "22" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Iff a b) = "23" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Goto a b) = "24" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa (Invoke a b) = "25" ++ outputWell 1 a ++ outputWell a b
--- toBinHexa Return = "26"
--- toBinHexa I2f = "27"
--- toBinHexa F2i = "28"
+getHumanReadable :: [Bytecode] -> [Char]
+getHumanReadable = concatMap toHumanReadable
+
+toHumanReadable :: Bytecode -> [Char]
+toHumanReadable (Funk _ b) = "Funk " ++ show b ++ "\n"
+toHumanReadable (Iload _ b) = " Iload " ++ show b ++ "\n"
+toHumanReadable (Fload _ b) = " Fload " ++ show b ++ "\n"
+toHumanReadable (Uload _ b) = " Uload " ++ show b ++ "\n"
+toHumanReadable (Istore _ b) = "  Istore " ++ show b ++ "\n"
+toHumanReadable (Fstore _ b) = "  Fstore " ++ show b ++ "\n"
+toHumanReadable (Ustore _ b) = "  Ustore " ++ show b ++ "\n"
+toHumanReadable (Iconst _ b) = "  Iconst " ++ show b ++ "\n"
+toHumanReadable (Fconst _ b) = "  Fconst " ++ show b ++ "\n"
+toHumanReadable (Uconst _ b) = "  Uconst " ++ show b ++ "\n"
+toHumanReadable Iadd = "  Iadd\n"
+toHumanReadable Fadd = "  Fadd\n"
+toHumanReadable Isub = "  Isub\n"
+toHumanReadable Fsub = "  Fsub\n"
+toHumanReadable Imul = "  Imul\n"
+toHumanReadable Fmul = "  Fmul\n"
+toHumanReadable Idiv = "  Idiv\n"
+toHumanReadable Fdiv = "  Fdiv\n"
+toHumanReadable Imod = "  Imod\n"
+toHumanReadable Ieq = " Ieq\n"
+toHumanReadable Feq = " Feq\n"
+toHumanReadable Ineq = "  Ineq\n"
+toHumanReadable Fneq = "  Fneq\n"
+toHumanReadable Igt = " Igt\n"
+toHumanReadable Fgt = " Fgt\n"
+toHumanReadable Ilt = " Ilt\n"
+toHumanReadable Flt = " Flt\n"
+toHumanReadable Ige = " Ige\n"
+toHumanReadable Fge = " Fge\n"
+toHumanReadable Ile = " Ile\n"
+toHumanReadable Fle = " Fle\n"
+toHumanReadable Iand = "  Iand\n"
+toHumanReadable Ior = " Ior\n"
+toHumanReadable Ixor = "  Ixor\n"
+toHumanReadable (Ift _ b) = " Ift " ++ show b ++ "\n"
+toHumanReadable (Iff _ b) = " Iff " ++ show b ++ "\n"
+toHumanReadable (Goto _ b) = "  Goto " ++ show b ++ "\n"
+toHumanReadable (Invoke _ b) = "  Invoke " ++ show b ++ "\n"
+toHumanReadable Return = "  Return\n"
+toHumanReadable I2f = " I2f\n"
+toHumanReadable F2i = " F2i\n"
+toHumanReadable NOTHING = "\n"
 
 bytecode :: [Bytecode]
 bytecode =
-    [ Funk 1 26
-    , Iconst 4 5
-    , Fconst 4 6.5
-    , Iadd
-    , Return
+    [
+      Funk 1 26,
+      Iload 4 0,
+      Iload 4 1,
+      Iadd,
+      Istore 4 2,
+      Iload 4 2,
+      Return,
+      Iconst 4 5,
+      Iconst 4 6,
+      Invoke 1 0
     ]
+
+getFloatFromHex :: [Char] -> Float
+getFloatFromHex [] = 0
+getFloatFromHex f = getFloatFromBytes $ concatMap (toBinary . digitToInt) f
+
+getFloatFromBytes :: [Char] -> Float
+getFloatFromBytes [] = 0
+getFloatFromBytes f = getSignFromBytes f * getMantissaFromBytes f * getExponentFromBytes f
+
+getSignFromBytes  :: [Char] -> Float
+getSignFromBytes f
+  | head f == '0' = 1
+  | otherwise = -1
+
+getMantissaFromBytes :: [Char] -> Float
+getMantissaFromBytes f = 1 + c
+  where c = foldl (\acc x -> acc / 2 + if x == '1' then 1 else 0) 0 (drop 9 f)
+
+getExponentFromBytes :: [Char] -> Float
+getExponentFromBytes f = 2 ^ (e - 127)
+  where e = foldl (\acc x -> acc * 2 + digitToInt x) 0 (take 8 (tail f))
