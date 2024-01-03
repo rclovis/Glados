@@ -17,9 +17,9 @@ data Expr
 
 genExpr :: [Token] -> Maybe [Expr]
 genExpr [] = Nothing
-genExpr tokens = Just expr
-  where
-    (expr, _) = genGroup tokens
+genExpr tokens = do
+  (expr, []) <- safeGenGroup tokens
+  pure expr
 
 genGroup :: [Token] -> ([Expr], [Token])
 genGroup [] = ([], [])
@@ -41,3 +41,24 @@ genGroup (OpenPar : xs) = (Parenthesis expr : zs, ws)
 genGroup (x : xs) = (Atom x : ys, zs)
   where
     (ys, zs) = genGroup xs
+
+safeGenGroup :: [Token] -> Maybe ([Expr], [Token])
+safeGenGroup [] = Just ([], [])
+safeGenGroup (CloseBracket : xs) = Just ([], xs)
+safeGenGroup (OpenBracket : xs) = do
+  (expr, ys) <- safeGenGroup xs
+  (zs, ws) <- safeGenGroup ys
+  pure (Brackets expr : zs, ws)
+safeGenGroup (CloseBrace : xs) = Just ([], xs)
+safeGenGroup (OpenBrace : xs) = do
+  (expr, ys) <- safeGenGroup xs
+  (zs, ws) <- safeGenGroup ys
+  pure (Braces expr : zs, ws)
+safeGenGroup (ClosePar : xs) = Just ([], xs)
+safeGenGroup (OpenPar : xs) = do
+  (expr, ys) <- safeGenGroup xs
+  (zs, ws) <- safeGenGroup ys
+  pure (Parenthesis expr : zs, ws)
+safeGenGroup (x : xs) = do
+  (ys, zs) <- safeGenGroup xs
+  pure (Atom x : ys, zs)
