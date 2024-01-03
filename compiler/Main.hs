@@ -7,16 +7,17 @@ import Lexer (tokenize)
 -- import Sexpr (parseSexpr)
 import System.Environment (getArgs)
 
-import Bytecode (toHexa, bytecode, getBinHexa, floatToHex)
+import Data.Char (chr)
+
+import Bytecode (IntTypes (..), getBin, bytecode, getIEEE, floatingStandardtoWord8, word8toChar)
+
+import qualified Data.ByteString as B
 
 main :: IO ()
 main = do
-  fileNames <- getArgs
-  file <- readFile (head fileNames)
-  let tokens = tokenize file
-  -- print tokens
-  print $ tokens
-  -- let sex = parseSexpr tokens
-  -- let ast = genAst sex
-  -- exec prelude (fromJust ast)
-  print $ getBinHexa bytecode 
+  args <- getArgs
+  let filename = head args
+  contents <- readFile filename
+  let tokens = tokenize contents
+  let test = getBin bytecode
+  B.putStr $ test
