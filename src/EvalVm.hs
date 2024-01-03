@@ -19,13 +19,28 @@ import LexerVm
 import OpNumber
   ( addF,
     addI,
+    andI,
     divF,
     divI,
+    eqF,
+    eqI,
+    geF,
+    geI,
+    gtF,
+    gtI,
+    leF,
+    leI,
+    ltF,
+    ltI,
     modI,
     mulF,
     mulI,
+    neF,
+    neI,
+    orI,
     subF,
     subI,
+    xorI,
   )
 import System.Environment (getArgs)
 
@@ -223,7 +238,6 @@ exec :: Instruction -> [Instruction] -> Operation ()
 exec (_, Funk, v) i = do
   cpu <- Operation get
   operationPushFunk (ip cpu)
-  operationSetIp (ip cpu + 1)
   operationJump (getIntegral v) i
 exec (_, Iload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
 exec (_, Fload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
@@ -239,6 +253,132 @@ exec (_, Iadd, _) _ = do
   a <- operationPopStack
   b <- operationPopStack
   operationPushStack (addI a b)
+exec (_, Fadd, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (addF a b)
+exec (_, Isub, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (subI a b)
+exec (_, Fsub, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (subF a b)
+exec (_, Imul, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (mulI a b)
+exec (_, Fmul, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (mulF a b)
+exec (_, Idiv, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (divI a b)
+exec (_, Fdiv, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (divF a b)
+exec (_, Irem, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (modI a b)
+exec (_, Ieq, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (eqI a b)
+exec (_, Feq, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (eqF a b)
+exec (_, Ine, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (neI a b)
+exec (_, Fne, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (neF a b)
+exec (_, Ilt, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (ltI a b)
+exec (_, Flt, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (ltF a b)
+exec (_, Igt, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (gtI a b)
+exec (_, Fgt, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (gtF a b)
+exec (_, Ile, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (leI a b)
+exec (_, Fle, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (leF a b)
+exec (_, Ige, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (geI a b)
+exec (_, Fge, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (geF a b)
+exec (_, Ift, v) i = do
+  a <- operationPopStack
+  if getBool a
+    then operationJump (getIntegral v) i
+    else operationAddIp
+exec (_, Iff, v) i = do
+  a <- operationPopStack
+  if getBool a
+    then operationAddIp
+    else operationJump (getIntegral v) i
+exec (_, Goto, v) i = operationJump (getIntegral v) i
+exec (_, Iand, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (andI a b)
+exec (_, Ior, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (orI a b)
+exec (_, Ixor, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (xorI a b)
 
 exec _ _ = do
   cpu <- Operation get

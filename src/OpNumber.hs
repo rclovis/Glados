@@ -1,19 +1,36 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module OpNumber (
-  addI,
-  addF,
-  subI,
-  subF,
-  mulI,
-  mulF,
-  divI,
-  divF,
-  modI,
-) where
+module OpNumber
+  ( addI,
+    addF,
+    subI,
+    subF,
+    mulI,
+    mulF,
+    divI,
+    divF,
+    modI,
+    eqI,
+    eqF,
+    neI,
+    neF,
+    ltI,
+    ltF,
+    gtI,
+    gtF,
+    leI,
+    leF,
+    geI,
+    geF,
+    andI,
+    orI,
+    xorI,
+  )
+where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
+import Data.Bits
 import Data.Int
 import Data.Sequence as S
 import Data.Word
@@ -85,6 +102,10 @@ getDouble (ISize x) = fromIntegral x
 getDouble (USize x) = fromIntegral x
 getDouble (Bool x) = fromIntegral $ fromEnum x
 getDouble None = 0
+
+getBool :: Variable -> Bool
+getBool (Bool x) = x
+getBool _ = False
 
 convertVar :: Variable -> Variable -> Variable
 convertVar (I8 _) (I8 x) = I8 x
@@ -227,4 +248,140 @@ modI a b =
     then convertVar a (modI a (convertVar a b))
     else convertVar b (modI (convertVar b a) b)
 
+eqI :: Variable -> Variable -> Variable
+eqI (I8 x) (I8 y) = Bool (x == y)
+eqI (I16 x) (I16 y) = Bool (x == y)
+eqI (I32 x) (I32 y) = Bool (x == y)
+eqI (I64 x) (I64 y) = Bool (x == y)
+eqI (U8 x) (U8 y) = Bool (x == y)
+eqI (U16 x) (U16 y) = Bool (x == y)
+eqI (U32 x) (U32 y) = Bool (x == y)
+eqI (U64 x) (U64 y) = Bool (x == y)
+eqI (ISize x) (ISize y) = Bool (x == y)
+eqI (USize x) (USize y) = Bool (x == y)
+eqI a b =
+  if lenVar a >= lenVar b
+    then convertVar a (eqI a (convertVar a b))
+    else convertVar b (eqI (convertVar b a) b)
 
+eqF :: Variable -> Variable -> Variable
+eqF (F32 x) (F32 y) = Bool (x == y)
+eqF (F64 x) (F64 y) = Bool (x == y)
+eqF a b =
+  if lenVar a >= lenVar b
+    then convertVar a (eqF a (convertVar a b))
+    else convertVar b (eqF (convertVar b a) b)
+
+neI :: Variable -> Variable -> Variable
+neI x y = Bool (not $ getBool $ eqI x y)
+
+neF :: Variable -> Variable -> Variable
+neF x y = Bool (not $ getBool $ eqF x y)
+
+ltI :: Variable -> Variable -> Variable
+ltI (I8 x) (I8 y) = Bool (x < y)
+ltI (I16 x) (I16 y) = Bool (x < y)
+ltI (I32 x) (I32 y) = Bool (x < y)
+ltI (I64 x) (I64 y) = Bool (x < y)
+ltI (U8 x) (U8 y) = Bool (x < y)
+ltI (U16 x) (U16 y) = Bool (x < y)
+ltI (U32 x) (U32 y) = Bool (x < y)
+ltI (U64 x) (U64 y) = Bool (x < y)
+ltI (ISize x) (ISize y) = Bool (x < y)
+ltI (USize x) (USize y) = Bool (x < y)
+ltI a b =
+  if lenVar a >= lenVar b
+    then convertVar a (ltI a (convertVar a b))
+    else convertVar b (ltI (convertVar b a) b)
+
+ltF :: Variable -> Variable -> Variable
+ltF (F32 x) (F32 y) = Bool (x < y)
+ltF (F64 x) (F64 y) = Bool (x < y)
+ltF a b =
+  if lenVar a >= lenVar b
+    then convertVar a (ltF a (convertVar a b))
+    else convertVar b (ltF (convertVar b a) b)
+
+gtI :: Variable -> Variable -> Variable
+gtI (I8 x) (I8 y) = Bool (x > y)
+gtI (I16 x) (I16 y) = Bool (x > y)
+gtI (I32 x) (I32 y) = Bool (x > y)
+gtI (I64 x) (I64 y) = Bool (x > y)
+gtI (U8 x) (U8 y) = Bool (x > y)
+gtI (U16 x) (U16 y) = Bool (x > y)
+gtI (U32 x) (U32 y) = Bool (x > y)
+gtI (U64 x) (U64 y) = Bool (x > y)
+gtI (ISize x) (ISize y) = Bool (x > y)
+gtI (USize x) (USize y) = Bool (x > y)
+gtI a b =
+  if lenVar a >= lenVar b
+    then convertVar a (gtI a (convertVar a b))
+    else convertVar b (gtI (convertVar b a) b)
+
+gtF :: Variable -> Variable -> Variable
+gtF (F32 x) (F32 y) = Bool (x > y)
+gtF (F64 x) (F64 y) = Bool (x > y)
+gtF a b =
+  if lenVar a >= lenVar b
+    then convertVar a (gtF a (convertVar a b))
+    else convertVar b (gtF (convertVar b a) b)
+
+leI :: Variable -> Variable -> Variable
+leI x y = Bool (not $ getBool $ gtI x y)
+
+leF :: Variable -> Variable -> Variable
+leF x y = Bool (not $ getBool $ gtF x y)
+
+geI :: Variable -> Variable -> Variable
+geI x y = Bool (not $ getBool $ ltI x y)
+
+geF :: Variable -> Variable -> Variable
+geF x y = Bool (not $ getBool $ ltF x y)
+
+andI :: Variable -> Variable -> Variable
+andI (I8 x) (I8 y) = I8 (x .&. y)
+andI (I16 x) (I16 y) = I16 (x .&. y)
+andI (I32 x) (I32 y) = I32 (x .&. y)
+andI (I64 x) (I64 y) = I64 (x .&. y)
+andI (U8 x) (U8 y) = U8 (x .&. y)
+andI (U16 x) (U16 y) = U16 (x .&. y)
+andI (U32 x) (U32 y) = U32 (x .&. y)
+andI (U64 x) (U64 y) = U64 (x .&. y)
+andI (ISize x) (ISize y) = ISize (x .&. y)
+andI (USize x) (USize y) = USize (x .&. y)
+andI a b =
+  if lenVar a >= lenVar b
+    then convertVar a (andI a (convertVar a b))
+    else convertVar b (andI (convertVar b a) b)
+
+orI :: Variable -> Variable -> Variable
+orI (I8 x) (I8 y) = I8 (x .|. y)
+orI (I16 x) (I16 y) = I16 (x .|. y)
+orI (I32 x) (I32 y) = I32 (x .|. y)
+orI (I64 x) (I64 y) = I64 (x .|. y)
+orI (U8 x) (U8 y) = U8 (x .|. y)
+orI (U16 x) (U16 y) = U16 (x .|. y)
+orI (U32 x) (U32 y) = U32 (x .|. y)
+orI (U64 x) (U64 y) = U64 (x .|. y)
+orI (ISize x) (ISize y) = ISize (x .|. y)
+orI (USize x) (USize y) = USize (x .|. y)
+orI a b =
+  if lenVar a >= lenVar b
+    then convertVar a (orI a (convertVar a b))
+    else convertVar b (orI (convertVar b a) b)
+
+xorI :: Variable -> Variable -> Variable
+xorI (I8 x) (I8 y) = I8 (x `xor` y)
+xorI (I16 x) (I16 y) = I16 (x `xor` y)
+xorI (I32 x) (I32 y) = I32 (x `xor` y)
+xorI (I64 x) (I64 y) = I64 (x `xor` y)
+xorI (U8 x) (U8 y) = U8 (x `xor` y)
+xorI (U16 x) (U16 y) = U16 (x `xor` y)
+xorI (U32 x) (U32 y) = U32 (x `xor` y)
+xorI (U64 x) (U64 y) = U64 (x `xor` y)
+xorI (ISize x) (ISize y) = ISize (x `xor` y)
+xorI (USize x) (USize y) = USize (x `xor` y)
+xorI a b =
+  if lenVar a >= lenVar b
+    then convertVar a (xorI a (convertVar a b))
+    else convertVar b (xorI (convertVar b a) b)
