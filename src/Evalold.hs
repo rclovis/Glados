@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Eval
+module Evalold
   ( emptyEnv,
     exec,
     prelude,
   )
 where
 
-import Ast (Ast (..))
+import Astold (Ast (..))
 import Control.Applicative
 import qualified Data.Map as Map
 

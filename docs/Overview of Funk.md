@@ -1,6 +1,8 @@
+# Overview of Funk
+
 ## Variables
 
-```
+```c#
 var variable: i32 = 0;
 var variable: i32;
 ```
@@ -15,33 +17,37 @@ var variable: i32;
 | arch    | `isize` | `usize`  |
 
 ## Functions
-```
+
+```c#
 funk fonction (): i32
 {
-	var variable: i32 = 0;
-	variable
+ var variable: i32 = 0;
+ variable
 }
 ```
 
 ## Pointers
-```
+
+```c#
 var variable: i32 = 0;
 var pointer: *i32 = &variable;
 ```
 
 ## Imports
-```
-#include "pathToFile"
+
+```c#
+include "pathToFile"
 ```
 
 ## Array
-```
+
+```c#
 var array: vector<i32> = {0, 2, 3};
 array.push(3);
 array.size();
 ```
 
-```
+```c#
 var array: vector<i32> = {0, 2, 3};
 array::push(3);
 array::size();

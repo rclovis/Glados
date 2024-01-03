@@ -2,139 +2,53 @@
 
 module Ast
   ( Ast (..),
+    Op (..),
+    Type (..),
+    Ast.Num (..),
     genAst,
-    factorial,
   )
 where
 
-import Control.Applicative ((<|>))
-import Sexpr (Sexpr (..))
+import Data.Int
+import Data.Word
+import Lexer (Token (..))
 
-data Ast
-  = Define String Ast
-  | If Ast Ast Ast
-  | Lambda [String] Ast
-  | Call Ast [Ast]
-  | Sym String
-  | Var String
-  | Str String
-  | Op String
-  | INum Int
-  | FNum Float
-  | Bool Bool
+data Op = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Le | Ge | And | Or | Not
   deriving (Eq, Ord, Show)
 
-getAst :: Sexpr -> Maybe Ast
-getAst expr =
-  getNum expr
-    <|> getOp expr
-    <|> getSym expr
-    <|> getVar expr
-    <|> getBool expr
-    <|> getStr expr
-    <|> getDefine expr
-    <|> getIf expr
-    <|> getLamdba expr
-    <|> getCall expr
+data Type = Ti8 | Ti16 | Ti32 | Ti64 | Tu8 | Tu16 | Tu32 | Tu64 | Tf32 | Tf64 | Tbool | Tstr | Tnull
+  deriving (Eq, Ord, Show)
 
--- | Gen program
-genAst :: [Sexpr] -> Maybe [Ast]
-genAst = traverse getAst
+data Num
+  = I8 Int8
+  | I16 Int16
+  | I32 Int32
+  | I64 Int64
+  | U8 Word8
+  | U16 Word16
+  | U32 Word32
+  | U64 Word64
+  | F32 Float
+  | F64 Double
+  deriving (Eq, Ord, Show)
 
--- | Get a number from an SExpr.
-getNum :: Sexpr -> Maybe Ast
-getNum (Sexpr.INum n) = pure (Ast.INum n)
-getNum (Sexpr.FNum n) = pure (Ast.FNum n)
-getNum _ = Nothing
+data Ast
+  = Seq [Ast]
+  | Print Ast
+  | Define String Type Ast
+  | Lambda [String] Ast
+  | Assign String Ast
+  | If Ast Ast Ast
+  | While Ast Ast
+  | Break
+  | BinOp Op Ast Ast
+  | UnOp Op Ast
+  | Id String
+  | Num Ast.Num
+  | Bool Bool
+  | Str String
+  | Null
+  deriving (Eq, Ord, Show)
 
-getSym :: Sexpr -> Maybe Ast
-getSym (Sexpr.Sym "") = Nothing
-getSym (Sexpr.Sym s@"define") = pure (Ast.Sym s)
-getSym _ = Nothing
-
-getVar :: Sexpr -> Maybe Ast
-getVar (Sexpr.Sym "") = Nothing
-getVar (Sexpr.Sym s) = pure (Ast.Var s)
-getVar _ = Nothing
-
-getOp :: Sexpr -> Maybe Ast
-getOp (Sexpr.Sym "") = Nothing
-getOp (Sexpr.Sym s@"+") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"-") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"*") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"/") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"=") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"!=") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"<") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@">") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"<=") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@">=") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"&&") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"||") = pure (Ast.Op s)
-getOp (Sexpr.Sym s@"!") = pure (Ast.Op s)
-getOp _ = Nothing
-
--- | Get a boolean from an SExpr.
-getBool :: Sexpr -> Maybe Ast
-getBool (Sexpr.Bool b) = pure (Ast.Bool b)
-getBool _ = Nothing
-
--- | Get a string from an SExpr.
-getStr :: Sexpr -> Maybe Ast
-getStr (Sexpr.Str s) = pure (Ast.Str s)
-getStr _ = Nothing
-
--- | Get a list of arguments from an SExpr.
-getArgs :: [Sexpr] -> Maybe [String]
-getArgs = traverse getArg
-  where
-    getArg (Sexpr.Sym "") = Nothing
-    getArg (Sexpr.Sym s) = pure s
-    getArg _ = Nothing
-
-getDefine :: Sexpr -> Maybe Ast
-getDefine (Sexpr.List [Sexpr.Sym "define", Sexpr.List (Sexpr.Sym name : args), expr]) =
-  Ast.Define name <$> (Ast.Lambda <$> getArgs args <*> getAst expr)
-getDefine (Sexpr.List [Sexpr.Sym "define", Sexpr.Sym name, expr]) = Ast.Define name <$> getAst expr
-getDefine _ = Nothing
-
-getIf :: Sexpr -> Maybe Ast
-getIf (Sexpr.List [Sexpr.Sym "if", cond, thenExpr, elseExpr]) =
-  Ast.If <$> getAst cond <*> getAst thenExpr <*> getAst elseExpr
-getIf _ = Nothing
-
-getCall :: Sexpr -> Maybe Ast
-getCall (Sexpr.List (name : args)) = Ast.Call <$> getAst name <*> traverse getAst args
-getCall _ = Nothing
-
-getLamdba :: Sexpr -> Maybe Ast
-getLamdba (Sexpr.List [Sexpr.Sym "lambda", Sexpr.List args, expr]) =
-  Ast.Lambda <$> getArgs args <*> getAst expr
-getLamdba _ = Nothing
-
-factorial :: [Sexpr]
-factorial =
-  [ List
-      [ Sexpr.Sym "define",
-        List [Sexpr.Sym "factorial", Sexpr.Sym "n"],
-        List
-          [ Sexpr.Sym "if",
-            List
-              [ Sexpr.Sym "=",
-                Sexpr.Sym "n",
-                Sexpr.INum 0
-              ],
-            Sexpr.INum 1,
-            List
-              [ Sexpr.Sym "*",
-                Sexpr.Sym "n",
-                List
-                  [ Sexpr.Sym "factorial",
-                    List [Sexpr.Sym "-", Sexpr.Sym "n", Sexpr.INum 1]
-                  ]
-              ]
-          ]
-      ],
-    List
-      [Sexpr.Sym "factorial", Sexpr.INum 10]
-  ]
+genAst :: [Token] -> Maybe [Ast]
+genAst = undefined

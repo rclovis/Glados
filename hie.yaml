@@ -3,8 +3,11 @@ cradle:
     - path: "./src"
       component: "glados:lib"
 
-    - path: "./app/Main.hs"
-      component: "glados:exe:glados-exe"
+    - path: "./compiler/Main.hs"
+      component: "glados:exe:compiler-exe"
+
+    - path: "./vm/Main.hs"
+      component: "glados:exe:vm-exe"
 
     - path: "./test"
       component: "glados:test:glados-test"

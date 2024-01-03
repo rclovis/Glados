@@ -21,7 +21,6 @@ module Parser
 where
 
 import Control.Applicative (Alternative (..))
-import Text.Read (readMaybe)
 
 newtype Parser a = Parser
   { runParser :: String -> Maybe (a, String)

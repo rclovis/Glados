@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+
 module Sexpr
   ( Sexpr (..),
     parseSexpr,
