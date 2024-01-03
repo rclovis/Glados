@@ -42,8 +42,8 @@ iload_4_2         ; Load the result
 return             ; Return the result
 
 ; Bytecode for invoking the add function
-iconst_5           ; Push constant 5 (argument for a)
-iconst_6           ; Push constant 6 (argument for b)
+iconst_4_5           ; Push constant 5 (argument for a)
+iconst_4_6           ; Push constant 6 (argument for b)
 invoke #0          ; Invoke add function
 ; The result is now on the stack
 ```

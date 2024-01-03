@@ -24,6 +24,7 @@ source-repository head
 library
   exposed-modules:
       Ast
+      Bytecode
       Eval
       EvalVm
       Lexer
@@ -40,6 +41,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , mtl
   default-language: Haskell2010
@@ -55,6 +57,7 @@ executable compiler-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , glados
     , mtl
@@ -71,6 +74,7 @@ executable vm-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , glados
     , mtl
@@ -89,6 +93,7 @@ test-suite glados-test
   build-depends:
       HUnit >=1.6.2.0
     , base >=4.7 && <5
+    , bytestring
     , containers
     , glados
     , mtl
