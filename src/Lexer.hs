@@ -42,6 +42,22 @@ data TypeParsed
   | Bool
   deriving (Show, Eq)
 
+data OperatorParsed
+  = Add
+  | Sub
+  | Mul
+  | Div
+  | Mod
+  | And
+  | Or
+  | Not
+  | Equal
+  | NotEqual
+  | Less
+  | LessEqual
+  | Greater
+  | GreaterEqual
+  deriving (Show, Eq)
 
 data Token
   = ClosePar
@@ -55,7 +71,10 @@ data Token
   | If
   | Else
   | While
+  | Break
+  | End
   | Funk
+  | Operator OperatorParsed
   | Type TypeParsed
   | Identifier String
   | Symbol String
@@ -88,7 +107,10 @@ parseOpenBrace :: Parser Token
 parseOpenBrace = fmap (const OpenBrace) (parseChar '{')
 
 parseType :: Parser Token
-parseType = fmap Type ((fmap (const I8) (parseString "i8")) <|> (fmap (const I16) (parseString "i16")) <|> (fmap (const I32) (parseString "i32")) <|> (fmap (const I64) (parseString "i64")) <|> (fmap (const F32) (parseString "f32")) <|> (fmap (const F64) (parseString "f64")) <|> (fmap (const ISize) (parseString "isize")) <|> (fmap (const U8) (parseString "u8")) <|> (fmap (const U16) (parseString "u16")) <|> (fmap (const U32) (parseString "u32")) <|> (fmap (const U64) (parseString "u64")) <|> (fmap (const USize) (parseString "usize")) <|> (fmap (const Bool) (parseString "bool")))
+parseType = fmap Type (fmap (const I8) (parseString "i8") <|> fmap (const I16) (parseString "i16") <|> fmap (const I32) (parseString "i32") <|> fmap (const I64) (parseString "i64") <|> fmap (const F32) (parseString "f32") <|> fmap (const F64) (parseString "f64") <|> fmap (const ISize) (parseString "isize") <|> fmap (const U8) (parseString "u8") <|> fmap (const U16) (parseString "u16") <|> fmap (const U32) (parseString "u32") <|> fmap (const U64) (parseString "u64") <|> fmap (const USize) (parseString "usize") <|> fmap (const Bool) (parseString "bool"))
+
+parseOperator :: Parser Token
+parseOperator = fmap Operator (fmap (const Add) (parseChar '+') <|> fmap (const Sub) (parseChar '-') <|> fmap (const Mul) (parseString "* ") <|> fmap (const Div) (parseChar '/') <|> fmap (const Mod) (parseChar '%') <|> fmap (const And) (parseString "&&") <|> fmap (const Or) (parseString "||") <|> fmap (const Not) (parseChar '!') <|> fmap (const Equal) (parseString "==") <|> fmap (const NotEqual) (parseString "!=") <|> fmap (const Less) (parseChar '<') <|> fmap (const LessEqual) (parseString "<=") <|> fmap (const Greater) (parseChar '>') <|> fmap (const GreaterEqual) (parseString ">="))
 
 parseFunk :: Parser Token
 parseFunk = fmap (const Funk) (parseString "funk")
@@ -108,8 +130,14 @@ parseElse = fmap (const Else) (parseString "else")
 parseWhile :: Parser Token
 parseWhile = fmap (const While) (parseString "while")
 
+parseBreak :: Parser Token
+parseBreak = fmap (const Break) (parseString "break")
+
+parseEnd :: Parser Token
+parseEnd = fmap (const End) (parseChar ';')
+
 parseIdentifier :: Parser Token
-parseIdentifier = fmap Identifier (parseAndWith (\x y -> x ++ y) (parseQuantity (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['_'])) 1) (parseMany (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['_']))))
+parseIdentifier = fmap Identifier (parseAndWith (++) (parseQuantity (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['_'])) 1) (parseMany (parseAnyChar (['a' .. 'z'] ++ ['A' .. 'Z'] ++ ['0' .. '9'] ++ ['_']))))
 
 parseSimpleSymbol :: Parser Token
 parseSimpleSymbol = fmap Symbol (parseQuantity (parseAnyChar "+-*/%{}[]().;:") 1)
@@ -133,7 +161,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseType <|> parseIdentifier <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseEnd <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseOperator <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
