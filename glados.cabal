@@ -28,6 +28,7 @@ library
       EvalVm
       Lexer
       LexerVm
+      OpNumber
       Parser
       Sexpr
   other-modules:

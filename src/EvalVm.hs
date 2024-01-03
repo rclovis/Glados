@@ -7,12 +7,25 @@ where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
+import Data.Int
 import Data.Sequence as S
+import Data.Word
 import LexerVm
   ( Instruction,
     OpCode (..),
     Variable (..),
     vmToken,
+  )
+import OpNumber
+  ( addF,
+    addI,
+    divF,
+    divI,
+    modI,
+    mulF,
+    mulI,
+    subF,
+    subI,
   )
 import System.Environment (getArgs)
 
@@ -148,7 +161,6 @@ operationGetVar x = Operation $ do
       return $ cpuVarTop `S.index` x
     _ -> return None
 
-
 operationLoadVar :: Int -> Operation ()
 operationLoadVar x = Operation $ do
   cpu <- get
@@ -157,7 +169,6 @@ operationLoadVar x = Operation $ do
       let i = cpuVarTop `S.index` x
       runOperation (operationPushStack i)
     _ -> return ()
-
 
 operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
@@ -169,7 +180,7 @@ operationPushVar x = Operation $ do
   cpu <- get
   put cpu {cpuVar = S.singleton x <| cpuVar cpu}
 
-operationJump :: Integral a => a -> [Instruction] -> Operation ()
+operationJump :: (Integral a) => a -> [Instruction] -> Operation ()
 operationJump 0 _ = return ()
 operationJump x i = Operation $ do
   cpu <- get
@@ -223,6 +234,11 @@ exec (_, Ustore, v) _ = operationAddIp >> operationStoreVar (getIntegral v)
 exec (_, Iconst, v) _ = operationAddIp >> operationPushStack v
 exec (_, Fconst, v) _ = operationAddIp >> operationPushStack v
 exec (_, Uconst, v) _ = operationAddIp >> operationPushStack v
+exec (_, Iadd, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  b <- operationPopStack
+  operationPushStack (addI a b)
 
 exec _ _ = do
   cpu <- Operation get

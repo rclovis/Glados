@@ -180,12 +180,12 @@ lenOfVar (I32 _) = 4
 lenOfVar (I64 _) = 8
 lenOfVar (F32 _) = 4
 lenOfVar (F64 _) = 8
-lenOfVar (ISize _) = 4
+lenOfVar (ISize _) = 8
 lenOfVar (U8 _) = 1
 lenOfVar (U16 _) = 2
 lenOfVar (U32 _) = 4
 lenOfVar (U64 _) = 8
-lenOfVar (USize _) = 4
+lenOfVar (USize _) = 8
 lenOfVar (Bool _) = 1
 lenOfVar None = 0
 
