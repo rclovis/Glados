@@ -385,3 +385,5 @@ xorI a b =
   if lenVar a >= lenVar b
     then convertVar a (xorI a (convertVar a b))
     else convertVar b (xorI (convertVar b a) b)
+
+

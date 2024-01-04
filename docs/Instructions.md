@@ -42,3 +42,7 @@
 | 0x25          | `invoke`                                 | True          |
 | 0x26          | `return`                                 | False          |
 | 0x27, 0x28    | `i2f`, `f2i`                             | False          |
+| 0x29          | `pop`                                    | True          |
+| 0x2A          | `dup`                                    | True          |
+| 0x2B          | `popPrev`                                | True          |
+| 0x2C ... 0x2E | `iloadStack`, `floadStack`, `uloadStack` | True          |
