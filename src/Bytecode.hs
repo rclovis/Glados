@@ -1,4 +1,4 @@
-module Bytecode (getBin, bytecode, Bytecode (..)) where
+module Bytecode (getBin, bytecode, Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..)) where
 
 import Data.Char (digitToInt)
 
@@ -50,29 +50,33 @@ data Bytecode
   | Fdiv -- divide float
   | Imod -- modulo int or uintù
   | Ieq -- equal int or uint
-  | Feq -- equal float
-  | Ineq -- not equal int or uint
-  | Fneq -- not equal float
-  | Igt -- greater than int or uint
-  | Fgt -- greater than float
+  | Ine -- not equal int or uint
   | Ilt -- less than int or uint
-  | Flt -- less than float
-  | Ige -- greater than or equal int or uint
-  | Fge -- greater than or equal float
+  | Igt -- greater than int or uint
   | Ile -- less than or equal int or uint
+  | Ige -- greater than or equal int or uint
+  | Feq -- equal float
+  | Fne -- not equal float
+  | Flt -- less than float
+  | Fgt -- greater than float
   | Fle -- less than or equal float
+  | Fge -- greater than or equal float
+  | Ift Word8 IntTypes -- if true jump of int bytes
+  | Iff Word8 IntTypes -- if false jump of int bytes
+  | Goto Word8 IntTypes -- jump of int bytes
   | Iand -- and int or uint
   | Ior -- or int or uint
   | Ixor -- xor int or uint
-  | Ift Word8 Int -- if true jump of int bytes
-  | Iff Word8 Int -- if false jump of int bytes
-  | Goto Word8 Int -- jump of int bytes
-  | Invoke Word8 Int -- invoke function at int index
+  | Invoke Word8 IntTypes -- invoke function at int index
   | Return -- return from function
   | I2f -- convert int to float
   | F2i -- convert float to int
-  | Consume Word8 Word8 -- consume Int args of the stack 
-  | NOTHING -- do nothing
+  | Pop Word8 Word8
+  | Dup Word8 Word8
+  | PopPrev Word8 Word8
+  | IloadStack Word8 Word8
+  | FloadStack Word8 Word8
+  | UloadStack Word8 Word8
 
 word8toChar :: [Word8] -> B.ByteString
 word8toChar = B.pack
@@ -235,29 +239,33 @@ toBin Idiv = [16]
 toBin Fdiv = [17]
 toBin Imod = [18]
 toBin Ieq = [19]
-toBin Feq = [20]
-toBin Ineq = [21]
-toBin Fneq = [22]
-toBin Igt = [23]
-toBin Fgt = [24]
-toBin Ilt = [25]
-toBin Flt = [26]
-toBin Ige = [27]
-toBin Fge = [28]
-toBin Ile = [29]
-toBin Fle = [30]
-toBin Iand = [31]
-toBin Ior = [32]
-toBin Ixor = [33]
-toBin (Ift a b) = [34, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
-toBin (Iff a b) = [35, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
-toBin (Goto a b) = [36, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
-toBin (Invoke a b) = [37, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
+toBin Ine = [20]
+toBin Ilt = [21]
+toBin Igt = [22]
+toBin Ile = [23]
+toBin Ige = [24]
+toBin Feq = [25]
+toBin Fne = [26]
+toBin Flt = [27]
+toBin Fgt = [28]
+toBin Fle = [29]
+toBin Fge = [30]
+toBin (Ift a b) = [31, a] ++ intTypesTo8bit b
+toBin (Iff a b) = [32, a] ++ intTypesTo8bit b
+toBin (Goto a b) = [33, a] ++ intTypesTo8bit b
+toBin Iand = [34]
+toBin Ior = [35]
+toBin Ixor = [36]
+toBin (Invoke a b) = [37, a] ++ intTypesTo8bit b
 toBin Return = [38]
 toBin I2f = [39]
 toBin F2i = [40]
-toBin (Consume a b) = [41, a, b]
-toBin NOTHING = []
+toBin (Pop a b) = [41, a, b]
+toBin (Dup a b) = [42, a, b]
+toBin (PopPrev a b) = [43, a, b]
+toBin (IloadStack a b) = [44, a, b]
+toBin (FloadStack a b) = [45, a, b]
+toBin (UloadStack a b) = [46, a, b]
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
@@ -284,8 +292,8 @@ toHumanReadable Fdiv = "  Fdiv\n"
 toHumanReadable Imod = "  Imod\n"
 toHumanReadable Ieq = "  Ieq\n"
 toHumanReadable Feq = "  Feq\n"
-toHumanReadable Ineq = "  Ineq\n"
-toHumanReadable Fneq = "  Fneq\n"
+toHumanReadable Ine = "  Ineq\n"
+toHumanReadable Fne = "  Fneq\n"
 toHumanReadable Igt = "  Igt\n"
 toHumanReadable Fgt = "  Fgt\n"
 toHumanReadable Ilt = "  Ilt\n"
@@ -304,22 +312,33 @@ toHumanReadable (Invoke _ b) = "  Invoke " ++ show b ++ "\n"
 toHumanReadable Return = "  Return\n"
 toHumanReadable I2f = "  I2f\n"
 toHumanReadable F2i = "  F2i\n"
-toHumanReadable (Consume _ b) = "  Consume " ++ show b ++ "\n"
-toHumanReadable NOTHING = "\n"
+toHumanReadable (Pop _ b) = "  Pop " ++ show b ++ "\n"
+toHumanReadable (Dup _ b) = "  Dup " ++ show b ++ "\n"
+toHumanReadable (PopPrev _ b) = "  PopPrev " ++ show b ++ "\n"
+toHumanReadable (IloadStack _ b) = "  IloadStack " ++ show b ++ "\n"
+toHumanReadable (FloadStack _ b) = "  FloadStack " ++ show b ++ "\n"
+toHumanReadable (UloadStack _ b) = "  UloadStack " ++ show b ++ "\n"
 
 bytecode :: [Bytecode]
 bytecode =
     [
-      Funk 1 26,
-      Iload 4 1,
-      Iload 4 2,
-      Iadd,
-      Istore 4 3,
-      Iload 4 3,
-      Return,
-      Iconst 4 (Int32Val 1),
-      Iconst 4 (Int32Val 2),
-      Invoke 1 0,
-      Uconst 2 (Word16Val 255),
-      Fconst 8 (DoubleVal 154541.452)
+        Funk 1 56,
+        IloadStack 1 0,
+        Iconst 8 (Int64Val 0), 
+        Ieq,
+        Iff 1 (Int8Val 14),
+        Iconst 8 (Int64Val 1),
+        Return,
+        IloadStack 1 0,
+        IloadStack 1 0,
+        Iconst 8 (Int64Val 1),
+        Isub,
+        Invoke 1 (Int8Val 0),
+        PopPrev 1 1,
+        Imul,
+        Return,
+
+        Iconst 8 (Int64Val 5),
+        Invoke 1 (Int8Val 0),
+        PopPrev 1 1
     ]
