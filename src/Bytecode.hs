@@ -1,6 +1,6 @@
-module Bytecode (IntTypes (..), getBin, bytecode, getIEEE, floatingStandardtoWord8, word8toChar, WordTypes (..), wordTypesTo8bit) where
+module Bytecode (getBin, bytecode, Bytecode (..)) where
 
-import Data.Char (digitToInt, intToDigit, chr)
+import Data.Char (digitToInt)
 
 import Data.Int (Int8, Int16, Int32, Int64)
 
@@ -207,11 +207,6 @@ getSign :: Float -> [Char]
 getSign f
   | f < 0 = "1"
   | otherwise = "0"
-
-toHexa :: Int -> Char
-toHexa n
-  | n < 10 = toEnum (n + fromEnum '0')
-  | otherwise = toEnum (n - 10 + fromEnum 'A')
 
 padZeros :: Int -> [Char] -> [Char]
 padZeros len str = replicate (max 0 (len - length str)) '0' ++ str
