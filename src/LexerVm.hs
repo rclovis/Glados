@@ -78,6 +78,17 @@ data OpCode
   | Return
   | I2f
   | F2i
+  | Pop
+  | Dup
+  | PopPrev
+  | IloadStack
+  | FloadStack
+  | UloadStack
+
+--   pop`                                    | True          |
+-- | 0x2A          | `dup`                                    | True          |
+-- | 0x2C          | `popPrev`                                | True          |
+-- | 0x2D ... 0x2F | `iloadStack`, `floadStack`, `uloadStack`
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -141,7 +152,14 @@ parserInstruction =
     Invoke <$ parseByte 37 <|>
     Return <$ parseByte 38 <|>
     I2f <$ parseByte 39 <|>
-    F2i <$ parseByte 40
+    F2i <$ parseByte 40 <|>
+    Pop <$ parseByte 41 <|>
+    Dup <$ parseByte 42 <|>
+    PopPrev <$ parseByte 43 <|>
+    IloadStack <$ parseByte 44 <|>
+    FloadStack <$ parseByte 45 <|>
+    UloadStack <$ parseByte 46
+
 
 getIntegerFromBytes :: Integral a => [Char] -> a
 getIntegerFromBytes = foldl' (\acc x -> acc * 256 + fromIntegral (ord x)) 0
@@ -235,6 +253,12 @@ parserCouple = Parser f
       Just (Return, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
       Just (I2f, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
       Just (F2i, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
+      Just (Pop, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
+      Just (Dup, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
+      Just (PopPrev, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
+      Just (IloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
+      Just (FloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
+      Just (UloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
       Nothing -> Nothing
 
 vmToken :: String -> Maybe [Instruction]
