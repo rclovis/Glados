@@ -1,7 +1,8 @@
-var n: i32 = 150;
-if (n != 0) {
-  n = n + 1;
-} else {
-  n = n - 1;
+funk factorial(a: i64): i64 {
+  if (b) {
+    1
+  }
+  c * factorial(d)
 }
-print(n);
+
+factorial(5);

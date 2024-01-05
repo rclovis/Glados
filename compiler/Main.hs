@@ -11,5 +11,6 @@ main = do
   file <- readFile (head fileNames)
   let ast = do
         tokens <- tokenize file
-        genExpr tokens
+        expr <- genExpr tokens
+        genAst expr
   print ast

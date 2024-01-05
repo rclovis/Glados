@@ -9,17 +9,19 @@ where
 import Lexer (Token (..))
 
 data Expr
-  = Parenthesis [Expr]
+  = Start [Expr]
+  | Instruction [Expr]
+  | Parenthesis [Expr]
   | Braces [Expr]
   | Brackets [Expr]
-  | Atom Token
+  | A Token
   deriving (Eq, Show)
 
-genExpr :: [Token] -> Maybe [Expr]
+genExpr :: [Token] -> Maybe Expr
 genExpr [] = Nothing
 genExpr tokens = do
   (expr, []) <- safeGenGroup tokens
-  pure expr
+  pure (Start expr)
 
 genGroup :: [Token] -> ([Expr], [Token])
 genGroup [] = ([], [])
@@ -38,7 +40,7 @@ genGroup (OpenPar : xs) = (Parenthesis expr : zs, ws)
   where
     (expr, ys) = genGroup xs
     (zs, ws) = genGroup ys
-genGroup (x : xs) = (Atom x : ys, zs)
+genGroup (x : xs) = (A x : ys, zs)
   where
     (ys, zs) = genGroup xs
 
@@ -61,4 +63,4 @@ safeGenGroup (OpenPar : xs) = do
   pure (Parenthesis expr : zs, ws)
 safeGenGroup (x : xs) = do
   (ys, zs) <- safeGenGroup xs
-  pure (Atom x : ys, zs)
+  pure (A x : ys, zs)

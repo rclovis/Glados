@@ -1,6 +1,8 @@
 module Lexer
   ( Token (..),
     tokenize,
+    TypeParsed (..),
+    OperatorParsed (..),
     -- mainTokenize,
   )
 where
@@ -8,22 +10,19 @@ where
 import Control.Applicative (Alternative (..))
 import Parser
   ( Parser (..),
-    parseAnd,
     parseAndWith,
     parseAnyChar,
     parseChar,
+    parseFloat,
     parseInt,
     parseList,
     parseMany,
     parseNothing,
     parseOr,
+    parseQuantity,
     parseSome,
     parseString,
-    parseUInt,
     runParser,
-    parseQuantity,
-    parseFloat,
-    parseUFloat,
   )
 
 data TypeParsed
@@ -161,7 +160,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseEnd <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket<|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseOperator <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseEnd <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseOperator <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
