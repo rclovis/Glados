@@ -2,12 +2,10 @@
 
 module BuildBytecode where
 
+import Bytecode (Bytecode (..), FloatingPoint (..), IntTypes (..), WordTypes (..))
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
 import Data.Sequence as S
-
-import Bytecode (Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..))
-
 import LexerVm (Variable (..))
 
 -- to remove : le One's AST -> import AST
@@ -39,66 +37,65 @@ data Ast
   | Var String
   | Null
   deriving (Eq, Ord, Show)
+
 -- end to remove
 
 data Memory = Memory
-    {
-        memVar :: S.Seq (S.Seq (String, Variable)),
-        memFunk :: S.Seq (String, [(String, Variable)])
-    }
-    deriving (Show, Eq)
+  { memVar :: S.Seq (S.Seq (String, Variable)),
+    memFunk :: S.Seq (String, S.Seq (String, Variable)),
+    bytecode :: S.Seq Bytecode
+  }
+  deriving (Show, Eq)
 
 newtype MemoryState a = MemoryState
-    { runMemoryState :: State Memory a
-    }
+  { runMemoryState :: State Memory a
+  }
 
 instance Functor MemoryState where
-    fmap :: (a -> b) -> MemoryState a -> MemoryState b
-    fmap f (MemoryState mem) = MemoryState $ do
-        a <- get
-        let (x, a') = runState mem a
-        put a'
-        return $ f x
+  fmap :: (a -> b) -> MemoryState a -> MemoryState b
+  fmap f (MemoryState mem) = MemoryState $ do
+    a <- get
+    let (x, a') = runState mem a
+    put a'
+    return $ f x
 
 instance Applicative MemoryState where
-    pure :: a -> MemoryState a
-    pure x = MemoryState $ do
-        return x
+  pure :: a -> MemoryState a
+  pure x = MemoryState $ do
+    return x
 
-    (<*>) :: MemoryState (a -> b) -> MemoryState a -> MemoryState b
-    (MemoryState mem1) <*> (MemoryState mem2) = MemoryState $ do
-        stock <- get
-        let (f, stock') = runState mem1 stock
-        let (x, stock'') = runState mem2 stock'
-        put stock''
-        return $ f x
+  (<*>) :: MemoryState (a -> b) -> MemoryState a -> MemoryState b
+  (MemoryState mem1) <*> (MemoryState mem2) = MemoryState $ do
+    stock <- get
+    let (f, stock') = runState mem1 stock
+    let (x, stock'') = runState mem2 stock'
+    put stock''
+    return $ f x
 
 instance Alternative MemoryState where
-    empty :: MemoryState a
-    empty = MemoryState $ do
-        stock <- get
-        return undefined
+  empty :: MemoryState a
+  empty = MemoryState $ do
+    stock <- get
+    return undefined
 
-    (<|>) :: MemoryState a -> MemoryState a -> MemoryState a
-    (MemoryState mem1) <|> (MemoryState mem2) = MemoryState $ do
-        stock <- get
-        let (x, stock') = runState mem1 stock
-        put stock'
-        return x
-    
+  (<|>) :: MemoryState a -> MemoryState a -> MemoryState a
+  (MemoryState mem1) <|> (MemoryState mem2) = MemoryState $ do
+    stock <- get
+    let (x, stock') = runState mem1 stock
+    put stock'
+    return x
+
 instance Monad MemoryState where
-    (>>=) :: MemoryState a -> (a -> MemoryState b) -> MemoryState b
-    (MemoryState mem) >>= f = MemoryState $ do
-        stock <- get
-        let (x, stock') = runState mem stock
-        let (MemoryState mem') = f x
-        let (y, stock'') = runState mem' stock'
-        put stock''
-        return y
+  (>>=) :: MemoryState a -> (a -> MemoryState b) -> MemoryState b
+  (MemoryState mem) >>= f = MemoryState $ do
+    stock <- get
+    let (x, stock') = runState mem stock
+    let (MemoryState mem') = f x
+    let (y, stock'') = runState mem' stock'
+    put stock''
+    return y
 
-
-
--- astToBytecode :: Ast -> [Maybe Bytecode]
+-- astToBytecode :: Ast -> MemoryState()
 -- astToBytecode ast =
 --         getSeq ast <|>
 --         getPrint ast <|>
@@ -120,23 +117,25 @@ instance Monad MemoryState where
 --         getNull ast <|>
 --         error "zbi"
 
-
-testAst:: Ast
+testAst :: Ast
 testAst =
-    Seq [
-        Assign "factorial"
-            (Lambda [("n", Ti32)] 
-                (Seq [
-                    If
-                        (BinOp Eq (Var "n") (Int 0))
-                        (Seq [Int 1])
-                        (Seq []),
-                    Seq [
-                        BinOp Mul (Var "n") (Call "factorial" [BinOp Sub (Var "n") (Int 1)])
+  Seq
+    [ Assign
+        "factorial"
+        ( Lambda
+            [("n", Ti32)]
+            ( Seq
+                [ If
+                    (BinOp Eq (Var "n") (Int 0))
+                    (Seq [Int 1])
+                    (Seq []),
+                  Seq
+                    [ BinOp Mul (Var "n") (Call "factorial" [BinOp Sub (Var "n") (Int 1)])
                     ]
-                ])
-            ),
-        Call "factorial" [Int 5]
+                ]
+            )
+        ),
+      Call "factorial" [Int 5]
     ]
 
 -- funk factorial(n: i64): i64 {
@@ -146,3 +145,17 @@ testAst =
 --   n * factorial(n - 1)
 -- }
 -- factorial(5);
+
+memoryAddFunk :: String -> S.Seq (String, Variable) -> MemoryState ()
+memoryAddFunk name args = do
+  stock <- get
+  let (Memory memVar memFunk bytecode) = stock
+  let memFunk' = memFunk |> (name, args)
+  put $ Memory memVar memFunk' bytecode
+
+getAssign :: Ast -> MemoryState ()
+getAssign (Assign name (Lambda args body)) = do
+  stock <- get
+  let (Memory memVar memFunk) = stock
+  let memVar' = memVar |> (S.empty, (name, Function args body))
+  put $ Memory memVar' memFunk
