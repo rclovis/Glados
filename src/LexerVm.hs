@@ -98,13 +98,10 @@ data Variable
   | I64 Int64
   | F32 Float
   | F64 Double
-  | ISize Int
   | U8 Word8
   | U16 Word16
   | U32 Word32
   | U64 Word64
-  | USize Word
-  | Bool Bool
   | None
   deriving (Show, Eq)
 
@@ -198,13 +195,10 @@ lenOfVar (I32 _) = 4
 lenOfVar (I64 _) = 8
 lenOfVar (F32 _) = 4
 lenOfVar (F64 _) = 8
-lenOfVar (ISize _) = 8
 lenOfVar (U8 _) = 1
 lenOfVar (U16 _) = 2
 lenOfVar (U32 _) = 4
 lenOfVar (U64 _) = 8
-lenOfVar (USize _) = 8
-lenOfVar (Bool _) = 1
 lenOfVar None = 0
 
 parserCouple :: Parser (Int, OpCode, Variable)
