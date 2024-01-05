@@ -9,7 +9,7 @@ import System.Environment (getArgs)
 
 import Data.Char (chr)
 
-import Bytecode (getBin, bytecode)
+import Bytecode (getBin, bytecode, getHumanReadable)
 
 import qualified Data.ByteString as B
 
@@ -19,5 +19,5 @@ main = do
   let filename = head args
   contents <- readFile filename
   let tokens = tokenize contents
-  let test = getBin bytecode
-  B.putStr $ test
+  let test = getHumanReadable bytecode
+  putStr $ test

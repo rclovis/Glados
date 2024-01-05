@@ -67,7 +67,6 @@ instance Functor Operation where
 instance Applicative Operation where
   pure :: a -> Operation a
   pure x = Operation $ do
-    cpu <- get
     return x
 
   (<*>) :: Operation (a -> b) -> Operation a -> Operation b

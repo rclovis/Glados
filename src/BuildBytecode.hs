@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module BuildBytecode where
 
 import Control.Applicative (Alternative (..))
@@ -6,6 +8,9 @@ import Data.Sequence as S
 
 import Bytecode (Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..))
 
+import LexerVm (Variable (..))
+
+-- to remove : le One's AST -> import AST
 data Op = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Le | Ge | And | Or | Not
   deriving (Eq, Ord, Show)
 
@@ -34,13 +39,71 @@ data Ast
   | Var String
   | Null
   deriving (Eq, Ord, Show)
+-- end to remove
+
+data Memory = Memory
+    {
+        memVar :: S.Seq (S.Seq (String, Variable)),
+        memFunk :: S.Seq (String, [(String, Variable)])
+    }
+    deriving (Show, Eq)
+
+newtype MemoryState a = MemoryState
+    { runMemoryState :: State Memory a
+    }
+
+instance Functor MemoryState where
+    fmap :: (a -> b) -> MemoryState a -> MemoryState b
+    fmap f (MemoryState mem) = MemoryState $ do
+        a <- get
+        let (x, a') = runState mem a
+        put a'
+        return $ f x
+
+instance Applicative MemoryState where
+    pure :: a -> MemoryState a
+    pure x = MemoryState $ do
+        return x
+
+    (<*>) :: MemoryState (a -> b) -> MemoryState a -> MemoryState b
+    (MemoryState mem1) <*> (MemoryState mem2) = MemoryState $ do
+        stock <- get
+        let (f, stock') = runState mem1 stock
+        let (x, stock'') = runState mem2 stock'
+        put stock''
+        return $ f x
+
+instance Alternative MemoryState where
+    empty :: MemoryState a
+    empty = MemoryState $ do
+        stock <- get
+        return undefined
+
+    (<|>) :: MemoryState a -> MemoryState a -> MemoryState a
+    (MemoryState mem1) <|> (MemoryState mem2) = MemoryState $ do
+        stock <- get
+        let (x, stock') = runState mem1 stock
+        put stock'
+        return x
+    
+instance Monad MemoryState where
+    (>>=) :: MemoryState a -> (a -> MemoryState b) -> MemoryState b
+    (MemoryState mem) >>= f = MemoryState $ do
+        stock <- get
+        let (x, stock') = runState mem stock
+        let (MemoryState mem') = f x
+        let (y, stock'') = runState mem' stock'
+        put stock''
+        return y
+
+
 
 -- astToBytecode :: Ast -> [Maybe Bytecode]
 -- astToBytecode ast =
 --         getSeq ast <|>
 --         getPrint ast <|>
 --         getDefine ast <|>
---         getLambda ast <|>
+--         getLambda  ast <|>
 --         getCall ast <|>
 --         getAssign ast <|>
 --         getIf ast <|>
@@ -56,19 +119,6 @@ data Ast
 --         getVar ast <|>
 --         getNull ast <|>
 --         error "zbi"
-
--- getSeq :: Ast -> [Maybe Bytecode]
--- getSeq (Seq (ast : rest)) = astToBytecode ast ++ getSeq (Seq rest)
--- getSeq _ = []
-
--- getPrint :: Ast -> [Maybe Bytecode]
--- getPrint (Print ast) = astToBytecode ast
--- getPrint _ = []
-
--- -- Skipped 
--- getDefine :: Ast -> [Maybe Bytecode]
--- getDefine (Define {}) = []
--- getDefine _ = []
 
 
 testAst:: Ast

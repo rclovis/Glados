@@ -1,4 +1,4 @@
-module Bytecode (getBin, bytecode, Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..)) where
+module Bytecode (getBin, bytecode, Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..), getHumanReadable) where
 
 import Data.Char (digitToInt)
 
