@@ -37,6 +37,20 @@ correspondingFloat :: Int -> Rational -> FloatingPoint
 correspondingFloat 4 x = FloatVal (fromRational x)
 correspondingFloat 8 x = DoubleVal (fromRational x)
 
+minimumSizeI :: Int -> Int
+minimumSizeI x
+  | x < 0 = error "zbi"
+  | x < 256 = 1
+  | x < 65536 = 2
+  | x < 4294967296 = 4
+  | otherwise = 8
+
+minimumSizeF :: Rational -> Int
+minimumSizeF x
+  | x < 0 = error "zbi"
+  | x < 3.402823466e+38 = 4
+  | otherwise = 8
+
 
 isFloat :: Type -> Bool
 isFloat Tf32 = True
@@ -270,14 +284,27 @@ getSeq _ = return ()
 
 getCall :: Ast -> MemoryState ()
 getCall (Call name args) = MemoryState $ do
-  stock <- get
-  funk <- runMemoryState (memoryGetFunk name (memFunk stock))
+  stock1 <- get
+  funk <- runMemoryState (memoryGetFunk name (memFunk stock1))
   runMemoryState (getSeq (Seq args))
-  put stock {bytecode = bytecode stock
-    |> Bytecode.Invoke 2 (correspondingInt 2 (toInteger (memoryGetFunkIndex name (memFunk stock))))
+  stock2 <- get
+  put stock2 {bytecode = bytecode stock2
+    |> Bytecode.Invoke 2 (correspondingInt 2 (toInteger (memoryGetFunkIndex name (memFunk stock2))))
     |> Bytecode.PopPrev 2 (correspondingInt 2 (toInteger (S.length funk)))
     }
 getCall _ = return ()
+
+getInt :: Ast -> MemoryState ()
+getInt (Int n) = MemoryState $ do
+  stock <- get
+  put stock {bytecode = bytecode stock |> Iconst (fromIntegral (minimumSizeI n) :: Word8) (correspondingInt (minimumSizeI n) (toInteger n))}
+getInt _ = return ()
+
+getFloat :: Ast -> MemoryState ()
+getFloat (Float n) = MemoryState $ do
+  stock <- get
+  put stock {bytecode = bytecode stock |> Fconst (fromIntegral (minimumSizeF (toRational n)) :: Word8) (correspondingFloat (minimumSizeF (toRational n)) (toRational n))}
+getFloat _ = return ()
 
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
@@ -288,6 +315,12 @@ getAll (Assign name (Lambda args body)) = MemoryState $ do
 
 getAll (Call name args) = MemoryState $ do
   runMemoryState (getCall (Call name args))
+
+getAll (Int n) = MemoryState $ do
+  runMemoryState (getInt (Int n))
+
+getAll (Float n) = MemoryState $ do
+  runMemoryState (getFloat (Float n))
 
 getAll _ = return ()
 
