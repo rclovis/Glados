@@ -6,10 +6,11 @@ import Bytecode (Bytecode (..), FloatingPoint (..), IntTypes (..), WordTypes (..
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
 import Data.Sequence as S
-import LexerVm (Variable (..))
+import LexerVm (Variable (..), OpCode (Invoke))
 import Data.Int
 import Data.Word
 import Data.Bits
+import Data.Map as M
 
 -- to remove : le One's AST -> import AST
 data Op = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Le | Ge | And | Or | Not
@@ -145,7 +146,7 @@ testAst =
     [ Assign
         "factorial"
         ( Lambda
-            [("n", Ti32), ("b", Tf64)]
+            [("n", Ti32)]
             ( Seq
                 [ If
                     (BinOp Eq (Var "n") (Int 0))
@@ -164,6 +165,23 @@ argToSeq :: [Arg] -> S.Seq (String, Type)
 argToSeq [] = S.empty
 argToSeq ((name, type_) : xs) = (name, type_) <| argToSeq xs
 
+memoryGetFunk :: String -> Seq (String, Seq (String, Type)) -> MemoryState (Seq (String, Type))
+memoryGetFunk name S.Empty = MemoryState $ do
+  stock <- get
+  return S.Empty
+memoryGetFunk name ((nameFunk, args) :<| xs) = MemoryState $ do
+  if name == nameFunk then
+    return args
+  else
+    runMemoryState (memoryGetFunk name xs)
+
+memoryGetFunkIndex :: String -> Seq (String, Seq (String, Type)) -> Int
+memoryGetFunkIndex name S.Empty = error "zbi"
+memoryGetFunkIndex name ((nameFunk, args) :<| xs) =
+  if name == nameFunk then
+    0
+  else
+    1 + memoryGetFunkIndex name xs
 
 memoryPushVarScope :: MemoryState ()
 memoryPushVarScope = MemoryState $ do
@@ -230,13 +248,13 @@ memoryAddFunk name args = MemoryState $ do
 
 getAssign :: Ast -> MemoryState ()
 getAssign (Assign name (Lambda args body)) = MemoryState $ do
-  stock <- get
   runMemoryState (memoryAddFunk name (argToSeq args))
-  put stock {bytecode = bytecode stock |> Funk 4 0}
+  stock1 <- get
+  put stock1 {bytecode = bytecode stock1 |> Funk 4 0}
   i <- gets (S.length . bytecode)
   runMemoryState (getFunk (argToSeq args) body)
-  stock <- get
-  funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock) - i + 1))
+  stock2 <- get
+  funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
   runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (fromIntegral funkSize)))
 
 getAssign _ = MemoryState $ do
@@ -250,6 +268,17 @@ getSeq (Seq (x:xs)) = MemoryState $ do
   runMemoryState (getSeq (Seq xs))
 getSeq _ = return ()
 
+getCall :: Ast -> MemoryState ()
+getCall (Call name args) = MemoryState $ do
+  stock <- get
+  funk <- runMemoryState (memoryGetFunk name (memFunk stock))
+  runMemoryState (getSeq (Seq args))
+  put stock {bytecode = bytecode stock
+    |> Bytecode.Invoke 2 (correspondingInt 2 (toInteger (memoryGetFunkIndex name (memFunk stock))))
+    |> Bytecode.PopPrev 2 (correspondingInt 2 (toInteger (S.length funk)))
+    }
+getCall _ = return ()
+
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
@@ -257,12 +286,12 @@ getAll (Seq asts) = MemoryState $ do
 getAll (Assign name (Lambda args body)) = MemoryState $ do
   runMemoryState (getAssign (Assign name (Lambda args body)))
 
-getAll _ = return ()
+getAll (Call name args) = MemoryState $ do
+  runMemoryState (getCall (Call name args))
 
+getAll _ = return ()
 
 mainBytecodeTest :: IO ()
 mainBytecodeTest = do
   let stock = execState (runMemoryState (getAll testAst)) emptyMemory
   print stock
-
-
