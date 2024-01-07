@@ -164,8 +164,8 @@ testAst =
             ( Seq
                 [ If
                     (BinOp Eq (Var "n") (Int 0))
-                    (Seq [Int 1])
-                    (Seq []),
+                    (Seq [Int 5])
+                    (Seq [Int 3]),
                   Seq
                     [ BinOp Mul (Var "n") (Call "factorial" [BinOp Sub (Var "n") (Int 1)])
                     ]
@@ -190,7 +190,7 @@ memoryGetFunk name ((nameFunk, args) :<| xs) = MemoryState $ do
     runMemoryState (memoryGetFunk name xs)
 
 memoryGetFunkIndex :: String -> Seq (String, Seq (String, Type)) -> Int
-memoryGetFunkIndex name S.Empty = error "zbi"
+memoryGetFunkIndex _ S.Empty = error "Empty"
 memoryGetFunkIndex name ((nameFunk, args) :<| xs) =
   if name == nameFunk then
     0
@@ -223,7 +223,20 @@ memorySetIndexBytecode i bc = MemoryState $ do
 memoryGetIndexBytecode :: Int -> MemoryState Bytecode
 memoryGetIndexBytecode i = MemoryState $ do
   stock <- get
-  return $ S.index (bytecode stock) i
+  return $ S.index (bytecode stock) i 
+
+memoryGetSizeBytecodeXtoY :: Int -> Int -> MemoryState Int
+memoryGetSizeBytecodeXtoY x y
+  | x > y = error "bad index"
+  | x == y = return 0
+memoryGetSizeBytecodeXtoY x y = MemoryState $ do
+  size1 <- runMemoryState (memoryGetIndexBytecode x)
+  if (x + 1) == y then
+    return (getSizeBytecode size1)
+  else do
+    size2 <- runMemoryState (memoryGetSizeBytecodeXtoY (x + 1) y)
+    return (getSizeBytecode size1 + size2)
+
 
 memoryGetSizeLastBytecode :: Int -> MemoryState Int
 memoryGetSizeLastBytecode 0 = return 0
@@ -306,6 +319,44 @@ getFloat (Float n) = MemoryState $ do
   put stock {bytecode = bytecode stock |> Fconst (fromIntegral (minimumSizeF (toRational n)) :: Word8) (correspondingFloat (minimumSizeF (toRational n)) (toRational n))}
 getFloat _ = return ()
 
+getIf :: Ast -> MemoryState ()
+getIf (If cond body1 body2) = MemoryState $ do
+  runMemoryState (getAll cond)
+  stock1 <- get
+  let save1 = S.length (bytecode stock1)
+  runMemoryState (getAll body2)
+  stock2 <- get
+  -- add return or goto here ? discuss with vis
+  sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
+  put stock2 {bytecode = S.take save1 (bytecode stock2) <> S.singleton (Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode + 4)))) <> S.drop save1 (bytecode stock2)}
+  runMemoryState (getAll body1)
+
+getIf _ = return ()
+
+
+getBinOp :: Ast -> MemoryState ()
+getBinOp (BinOp op ast1 ast2) = MemoryState $ do
+  runMemoryState (getAll ast1)
+  runMemoryState (getAll ast2)
+  stock <- get
+  case op of
+    Add -> put stock {bytecode = bytecode stock |> Iadd}
+    Sub -> put stock {bytecode = bytecode stock |> Isub}
+    Mul -> put stock {bytecode = bytecode stock |> Imul}
+    Div -> put stock {bytecode = bytecode stock |> Idiv}
+    Mod -> put stock {bytecode = bytecode stock |> Imod}
+    Eq -> put stock {bytecode = bytecode stock |> Ieq}
+    Neq -> put stock {bytecode = bytecode stock |> Ine}
+    Lt -> put stock {bytecode = bytecode stock |> Ilt}
+    Gt -> put stock {bytecode = bytecode stock |> Igt}
+    Le -> put stock {bytecode = bytecode stock |> Ile}
+    Ge -> put stock {bytecode = bytecode stock |> Ige}
+    BuildBytecode.And -> put stock {bytecode = bytecode stock |> Iand}
+    Or -> put stock {bytecode = bytecode stock |> Bytecode.Ior}
+    -- Not -> put stock {bytecode = bytecode stock |> Inot}
+    _ -> error "not supported Binary Operator"
+getBinOp _ = return ()
+
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
@@ -321,6 +372,12 @@ getAll (Int n) = MemoryState $ do
 
 getAll (Float n) = MemoryState $ do
   runMemoryState (getFloat (Float n))
+
+getAll (BinOp op ast1 ast2) = MemoryState $ do
+  runMemoryState (getBinOp (BinOp op ast1 ast2))
+
+getAll (If cond body1 body2) = MemoryState $ do
+  runMemoryState (getIf (If cond body1 body2))
 
 getAll _ = return ()
 
