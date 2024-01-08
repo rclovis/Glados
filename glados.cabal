@@ -28,6 +28,7 @@ library
       Ast.Op
       Ast.Types
       Ast.Utils
+      BuildBytecode
       Bytecode
       EvalVm
       Lexer

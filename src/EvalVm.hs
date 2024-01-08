@@ -84,7 +84,6 @@ instance Functor Operation where
 instance Applicative Operation where
   pure :: a -> Operation a
   pure x = Operation $ do
-    cpu <- get
     return x
 
   (<*>) :: Operation (a -> b) -> Operation a -> Operation b
@@ -172,11 +171,6 @@ operationPushStack x = Operation $ do
   cpu <- get
   put cpu {cpuStack = x <| cpuStack cpu}
 
-operationExtendVar :: Int -> Operation ()
-operationExtendVar x = Operation $ do
-  cpu <- get
-  put cpu {cpuVar = S.replicate x S.empty >< cpuVar cpu}
-
 operationSetVar :: Int -> Variable -> Operation ()
 operationSetVar x y = Operation $ do
   cpu <- get
@@ -206,11 +200,6 @@ operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
   pop <- runOperation operationPopStack
   runOperation $ operationSetVar x pop
-
-operationPushVar :: Variable -> Operation ()
-operationPushVar x = Operation $ do
-  cpu <- get
-  put cpu {cpuVar = S.singleton x <| cpuVar cpu}
 
 operationRepeatOp :: Int -> Operation () -> Operation ()
 operationRepeatOp 0 _ = return ()
@@ -252,20 +241,12 @@ getIntegral (U8 x) = fromIntegral x
 getIntegral (U16 x) = fromIntegral x
 getIntegral (U32 x) = fromIntegral x
 getIntegral (U64 x) = fromIntegral x
-getIntegral (ISize x) = fromIntegral x
-getIntegral (USize x) = fromIntegral x
-getIntegral (Bool True) = 1
-getIntegral (Bool False) = 0
 getIntegral _ = 0
 
 getFloating :: (RealFloat a) => Variable -> a
 getFloating (F32 x) = realToFrac x
 getFloating (F64 x) = realToFrac x
 getFloating _ = 0
-
-getBool :: Variable -> Bool
-getBool (Bool x) = x
-getBool _ = False
 
 exec :: Instruction -> [Instruction] -> Operation ()
 exec (_, Funk, v) i = do
@@ -388,12 +369,12 @@ exec (_, Fge, _) _ = do
   operationPushStack (geF a b)
 exec (_, Ift, v) i = do
   a <- operationPopStack
-  if getBool a
+  if getIntegral a == 1
     then operationJump (getIntegral v) i
     else operationAddIp
 exec (_, Iff, v) i = do
   a <- operationPopStack
-  if getBool a
+  if getIntegral a == 1
     then operationAddIp
     else operationJump (getIntegral v) i
 exec (_, Goto, v) i = operationJump (getIntegral v) i

@@ -7,7 +7,8 @@ import System.Environment (getArgs)
 
 import Data.Char (chr)
 
-import Bytecode (IntTypes (..), getBin, bytecode, getIEEE, floatingStandardtoWord8, word8toChar)
+import Bytecode (getBin, bytecode, getHumanReadable)
+import BuildBytecode (mainBytecodeTest)
 
 import qualified Data.ByteString as B
 
