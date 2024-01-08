@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Expr
+module Ast.Expr
   ( Expr (..),
     genExpr,
   )
@@ -9,19 +9,44 @@ where
 import Lexer (Token (..))
 
 data Expr
-  = Start [Expr]
-  | Instruction [Expr]
-  | Parenthesis [Expr]
+  = Parenthesis [Expr]
   | Braces [Expr]
   | Brackets [Expr]
+  | FuncCall String Expr
   | A Token
   deriving (Eq, Show)
 
-genExpr :: [Token] -> Maybe Expr
+genExpr :: [Token] -> Maybe [Expr]
 genExpr [] = Nothing
 genExpr tokens = do
   (expr, []) <- safeGenGroup tokens
-  pure (Start expr)
+  let (expr', _) = getFuncCall expr
+  pure expr'
+
+getFuncCall :: [Expr] -> ([Expr], [Expr])
+getFuncCall [] = ([], [])
+getFuncCall (a@(A Funk) : b@(A (Identifier _)) : xs) = do
+  let (expr, ys) = getFuncCall xs
+  (a : b : expr, ys)
+getFuncCall (A (Identifier name) : (Parenthesis args) : xs) = do
+  let (expr, ys) = getFuncCall xs
+  let (expr', _) = getFuncCall args
+  (FuncCall name (Parenthesis expr') : expr, ys)
+getFuncCall (Parenthesis args : xs) = do
+  let (expr, ys) = getFuncCall xs
+  let (expr', _) = getFuncCall args
+  (Parenthesis expr' : expr, ys)
+getFuncCall (Braces args : xs) = do
+  let (expr, ys) = getFuncCall xs
+  let (expr', _) = getFuncCall args
+  (Braces expr' : expr, ys)
+getFuncCall (Brackets args : xs) = do
+  let (expr, ys) = getFuncCall xs
+  let (expr', _) = getFuncCall args
+  (Brackets expr' : expr, ys)
+getFuncCall (x : xs) = do
+  let (expr, ys) = getFuncCall xs
+  (x : expr, ys)
 
 genGroup :: [Token] -> ([Expr], [Token])
 genGroup [] = ([], [])

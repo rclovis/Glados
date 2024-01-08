@@ -1,8 +1,8 @@
 funk factorial(a: i64): i64 {
   if (b) {
-    1
+    return 1;
   }
-  c * factorial(d)
+  return c * factorial(d);
 }
 
-factorial(5);
+return factorial(5);

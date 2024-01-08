@@ -25,9 +25,11 @@ library
   exposed-modules:
       Ast.Ast
       Ast.Expr
+      Ast.Op
+      Ast.Types
+      Ast.Utils
       Lexer
       Parser
-      Sexpr
   other-modules:
       Paths_glados
   autogen-modules:

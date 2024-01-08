@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Ast (genAst)
-import Expr (genExpr)
+import Ast.Ast (genAst)
+import Ast.Expr (genExpr)
 import Lexer (tokenize)
 import System.Environment (getArgs)
 
