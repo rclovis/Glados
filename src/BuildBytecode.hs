@@ -36,6 +36,7 @@ correspondingWord _ _ = error "zbi"
 correspondingFloat :: Int -> Rational -> FloatingPoint
 correspondingFloat 4 x = FloatVal (fromRational x)
 correspondingFloat 8 x = DoubleVal (fromRational x)
+correspondingFloat _ _ = error "zbi"
 
 minimumSizeI :: Int -> Int
 minimumSizeI x
@@ -50,7 +51,6 @@ minimumSizeF x
   | x < 0 = error "zbi"
   | x < 3.402823466e+38 = 4
   | otherwise = 8
-
 
 isFloat :: Type -> Bool
 isFloat Tf32 = True
@@ -75,23 +75,21 @@ type Arg = (String, Type)
 
 data Ast
   = Seq [Ast]
-  | Print Ast
   | Define String Type Ast
+  | Assign String Ast
   | Lambda [Arg] Ast
   | Call String [Ast]
-  | Assign String Ast
+  | Return Ast
   | If Ast Ast Ast
   | While Ast Ast
   | Break
+  | Continue
+  | Id String
+  | Value Ast
   | BinOp Op Ast Ast
   | UnOp Op Ast
-  | Id String
   | Int Int
   | Float Float
-  | Bool Bool
-  | Str String
-  | Var String
-  | Null
   deriving (Eq, Ord, Show)
 
 -- end to remove
@@ -156,24 +154,24 @@ instance Monad MemoryState where
 
 testAst :: Ast
 testAst =
-  Seq
-    [ Assign
-        "factorial"
-        ( Lambda
-            [("n", Ti32)]
-            ( Seq
-                [ If
-                    (BinOp Eq (Var "n") (Int 0))
-                    (Seq [Int 5])
-                    (Seq [Int 3]),
-                  Seq
-                    [ BinOp Mul (Var "n") (Call "factorial" [BinOp Sub (Var "n") (Int 1)])
-                    ]
-                ]
-            )
-        ),
-      Call "factorial" [Int 5]
-    ]
+  Seq [
+    Define
+      "factorial"
+      Ti64
+      (Lambda
+        [("n", Ti32)]
+        (Seq [
+          If
+            (BinOp Eq (Id "n") (Int 0))
+            (BuildBytecode.Return (Int 1))
+            (Seq [])
+          ,
+          BuildBytecode.Return (BinOp Mul (Id "n") (Call "factorial" [BinOp Sub (Id "n") (Int 1)]))
+        ])
+      )
+    ,
+    Call "factorial" [Int 5]
+  ]
 
 argToSeq :: [Arg] -> S.Seq (String, Type)
 argToSeq [] = S.empty
@@ -272,6 +270,20 @@ memoryAddFunk :: String -> S.Seq (String, Type) -> MemoryState ()
 memoryAddFunk name args = MemoryState $ do
   stock <- get
   put stock {memFunk = memFunk stock |> (name, args)}
+
+
+getDefine :: Ast -> MemoryState ()
+getDefine (Define name _ (Lambda args body)) = MemoryState $ do
+  runMemoryState (memoryAddFunk name (argToSeq args))
+  stock1 <- get
+  put stock1 {bytecode = bytecode stock1 |> Funk 4 0}
+  i <- gets (S.length . bytecode)
+  runMemoryState (getFunk (argToSeq args) body)
+  stock2 <- get
+  funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
+  runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (fromIntegral funkSize)))
+
+getDefine _ = return ()
 
 getAssign :: Ast -> MemoryState ()
 getAssign (Assign name (Lambda args body)) = MemoryState $ do
@@ -378,6 +390,9 @@ getAll (BinOp op ast1 ast2) = MemoryState $ do
 
 getAll (If cond body1 body2) = MemoryState $ do
   runMemoryState (getIf (If cond body1 body2))
+
+getAll (Define name type_ (Lambda args body)) = MemoryState $ do
+  runMemoryState (getDefine (Define name type_ (Lambda args body)))
 
 getAll _ = return ()
 
