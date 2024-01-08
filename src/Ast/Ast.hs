@@ -27,7 +27,6 @@ data Ast
   | Break
   | Continue
   | Id String
-  | Value Ast
   | BinOp Op Ast Ast
   | UnOp Op Ast
   | Int Int
@@ -50,27 +49,84 @@ getAst xs = do
       <|> getDefine xs
       <|> getAssign xs
       <|> getReturn xs
-      <|> getValue xs
-      <|> getIdentifier xs
+      <|> case getValue [Parenthesis xs] of
+        Nothing -> Nothing
+        Just ast -> Just (ast, [])
       <|> error ("Not implemented: " ++ show xs)
   case getAst expr of
     Nothing -> pure (ast, expr)
     Just (ys, zs) -> pure (Seq (ast : [ys]), zs)
 
-getValue :: [Expr] -> Maybe (Ast, [Expr])
-getValue xs = do
-  (ast, expr) <-
-    getCall xs
-      <|> getPriority xs
-      <|> getCall xs
-      <|> getBinOp xs
-      <|> getUnOp xs
-      <|> getIdentifier xs
-      <|> getNumber xs
-      <|> error ("Invalid value: " ++ show xs)
-  case getAst expr of
-    Nothing -> pure (ast, expr)
-    Just (ys, zs) -> pure (Seq (ast : [ys]), zs)
+getValue :: [Expr] -> Maybe Ast
+getValue xs =
+  do
+    getBinOp lv0priority xs
+    <|> getBinOp lv1priority xs
+    <|> getBinOp lv2priority xs
+    <|> getBinOp lv3priority xs
+    <|> getParentheses xs
+    <|> getCallFunk xs
+    <|> getNumber xs
+    <|> getIdentifier xs
+    <|> error ("Not implemented: " ++ show xs)
+  where
+    getCallFunk :: [Expr] -> Maybe Ast
+    getCallFunk [FuncCall name (Parenthesis args)] = do
+      args' <- getValue args
+      pure (Call name [args'])
+    getCallFunk _ = Nothing
+
+getBinOp :: (Expr -> Bool) -> [Expr] -> Maybe Ast
+getBinOp f xs = do
+  (a, A (Operator op), b) <- getSplitAtOp f xs
+  a' <- getValue a
+  b' <- getValue b
+  op' <- getOp op
+  pure (BinOp op' b' a')
+
+getParentheses :: [Expr] -> Maybe Ast
+getParentheses [Parenthesis body] = getValue $ reverse body
+getParentheses _ = Nothing
+
+getSplitAtOp :: (a -> Bool) -> [a] -> Maybe ([a], a, [a])
+getSplitAtOp f (x : xs)
+  | f x = Just ([], x, xs)
+  | otherwise = do
+      (ys, op, zs) <- getSplitAtOp f xs
+      pure (x : ys, op, zs)
+getSplitAtOp _ _ = Nothing
+
+lv3priority :: Expr -> Bool
+lv3priority (A (Operator Lexer.Mul)) = True
+lv3priority (A (Operator Lexer.Div)) = True
+lv3priority (A (Operator Lexer.Mod)) = True
+lv3priority _ = False
+
+lv2priority :: Expr -> Bool
+lv2priority (A (Operator Lexer.Add)) = True
+lv2priority (A (Operator Lexer.Sub)) = True
+lv2priority _ = False
+
+lv1priority :: Expr -> Bool
+lv1priority (A (Operator Lexer.Equal)) = True
+lv1priority (A (Operator Lexer.NotEqual)) = True
+lv1priority (A (Operator Lexer.Less)) = True
+lv1priority (A (Operator Lexer.Greater)) = True
+lv1priority (A (Operator Lexer.LessEqual)) = True
+lv1priority (A (Operator Lexer.GreaterEqual)) = True
+lv1priority _ = False
+
+lv0priority :: Expr -> Bool
+lv0priority (A (Operator Lexer.And)) = True
+lv0priority (A (Operator Lexer.Or)) = True
+lv0priority _ = False
+
+getUnOp :: [Expr] -> Maybe (Ast, [Expr])
+getUnOp (A (Operator op) : a : xs) = do
+  (a', []) <- getAst [a]
+  op' <- Ast.Ast.getOp op
+  pure (UnOp op' a', xs)
+getUnOp _ = Nothing
 
 getFunk :: [Expr] -> Maybe (Ast, [Expr])
 getFunk (A Funk : A (Identifier name) : Parenthesis args : A (Symbol ":") : A (Lexer.Type t) : Braces body : xs) = do
@@ -102,18 +158,12 @@ getIf _ = Nothing
 
 getCall :: [Expr] -> Maybe (Ast, [Expr])
 getCall (FuncCall name (Parenthesis args) : A End : xs) = do
-  (args', []) <- getValue args
+  args' <- getValue args
   pure (Call name [args'], xs)
 getCall (FuncCall name (Parenthesis args) : xs) = do
-  (args', []) <- getValue args
+  args' <- getValue args
   pure (Call name [args'], xs)
 getCall _ = Nothing
-
-getPriority :: [Expr] -> Maybe (Ast, [Expr])
-getPriority (Parenthesis expr : xs) = do
-  (ast, []) <- getAst expr
-  pure (ast, xs)
-getPriority _ = Nothing
 
 getDefine :: [Expr] -> Maybe (Ast, [Expr])
 getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : A (Symbol "=") : xs) = do
@@ -137,28 +187,13 @@ getReturn (A (Identifier "return") : xs) = do
   pure (Return expr, xs')
 getReturn _ = Nothing
 
-getBinOp :: [Expr] -> Maybe (Ast, [Expr])
-getBinOp (a : A (Operator op) : b : xs) = do
-  (a', []) <- getAst [a]
-  (b', []) <- getAst [b]
-  op' <- Ast.Ast.getOp op
-  pure (BinOp op' a' b', xs)
-getBinOp _ = Nothing
-
-getUnOp :: [Expr] -> Maybe (Ast, [Expr])
-getUnOp (A (Operator op) : a : xs) = do
-  (a', []) <- getAst [a]
-  op' <- Ast.Ast.getOp op
-  pure (UnOp op' a', xs)
-getUnOp _ = Nothing
-
-getNumber :: [Expr] -> Maybe (Ast, [Expr])
-getNumber (A (INumber n) : xs) = pure (Int n, xs)
-getNumber (A (FNumber n) : xs) = pure (Float n, xs)
+getNumber :: [Expr] -> Maybe Ast
+getNumber [A (INumber n)] = pure (Int n)
+getNumber [A (FNumber n)] = pure (Float n)
 getNumber _ = Nothing
 
-getIdentifier :: [Expr] -> Maybe (Ast, [Expr])
-getIdentifier (A (Identifier name) : xs) = pure (Id name, xs)
+getIdentifier :: [Expr] -> Maybe Ast
+getIdentifier [A (Identifier name)] = pure (Id name)
 getIdentifier _ = Nothing
 
 getOp :: OperatorParsed -> Maybe Ast.Op.Op

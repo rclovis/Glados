@@ -6,34 +6,20 @@ module LexerVm
   )
 where
 
-import Ast (factorial)
+-- import Ast.Ast (factorial)
 import Control.Applicative (Alternative (..))
-import Data.Int
 import Data.Char
-import Data.List
-
+import Data.Int
+import Data.List (foldl')
 import Data.Word
-import Eval (exec)
+-- import Ast.Eval (exec)
 import Parser
   ( Parser (..),
-    parseAnd,
     parseAndWith,
-    parseAnyChar,
-    parseChar,
-    parseFloat,
-    parseInt,
-    parseList,
+    parseByte,
     parseMany,
     parseNothing,
-    parseOr,
-    parseQuantity,
-    parseSome,
-    parseString,
-    parseUFloat,
-    parseUInt,
     runParser,
-    parseOneChar,
-    parseByte,
   )
 
 data OpCode
@@ -84,11 +70,10 @@ data OpCode
   | IloadStack
   | FloadStack
   | UloadStack
-
---   pop`                                    | True          |
--- | 0x2A          | `dup`                                    | True          |
--- | 0x2C          | `popPrev`                                | True          |
--- | 0x2D ... 0x2F | `iloadStack`, `floadStack`, `uloadStack`
+  --   pop`                                    | True          |
+  -- \| 0x2A          | `dup`                                    | True          |
+  -- \| 0x2C          | `popPrev`                                | True          |
+  -- \| 0x2D ... 0x2F | `iloadStack`, `floadStack`, `uloadStack`
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -112,56 +97,102 @@ type Instruction = (Int, OpCode, Variable)
 
 parserInstruction :: Parser OpCode
 parserInstruction =
-    Funk <$ parseByte 0 <|>
-    Iload <$ parseByte 1 <|>
-    Fload <$ parseByte 2 <|>
-    Uload <$ parseByte 3 <|>
-    Istore <$ parseByte 4 <|>
-    Fstore <$ parseByte 5 <|>
-    Ustore <$ parseByte 6 <|>
-    Iconst <$ parseByte 7 <|>
-    Fconst <$ parseByte 8 <|>
-    Uconst <$ parseByte 9 <|>
-    Iadd <$ parseByte 10 <|>
-    Fadd <$ parseByte 11 <|>
-    Isub <$ parseByte 12 <|>
-    Fsub <$ parseByte 13 <|>
-    Imul <$ parseByte 14 <|>
-    Fmul <$ parseByte 15 <|>
-    Idiv <$ parseByte 16 <|>
-    Fdiv <$ parseByte 17 <|>
-    Irem <$ parseByte 18 <|>
-    Ieq <$ parseByte 19 <|>
-    Ine <$ parseByte 20 <|>
-    Ilt <$ parseByte 21 <|>
-    Igt <$ parseByte 22 <|>
-    Ile <$ parseByte 23 <|>
-    Ige <$ parseByte 24 <|>
-    Feq <$ parseByte 25 <|>
-    Fne <$ parseByte 26 <|>
-    Flt <$ parseByte 27 <|>
-    Fgt <$ parseByte 28 <|>
-    Fle <$ parseByte 29 <|>
-    Fge <$ parseByte 30 <|>
-    Ift <$ parseByte 31 <|>
-    Iff <$ parseByte 32 <|>
-    Goto <$ parseByte 33 <|>
-    Iand <$ parseByte 34 <|>
-    Ior <$ parseByte 35 <|>
-    Ixor <$ parseByte 36 <|>
-    Invoke <$ parseByte 37 <|>
-    Return <$ parseByte 38 <|>
-    I2f <$ parseByte 39 <|>
-    F2i <$ parseByte 40 <|>
-    Pop <$ parseByte 41 <|>
-    Dup <$ parseByte 42 <|>
-    PopPrev <$ parseByte 43 <|>
-    IloadStack <$ parseByte 44 <|>
-    FloadStack <$ parseByte 45 <|>
-    UloadStack <$ parseByte 46
+  Funk
+    <$ parseByte 0
+      <|> Iload
+    <$ parseByte 1
+      <|> Fload
+    <$ parseByte 2
+      <|> Uload
+    <$ parseByte 3
+      <|> Istore
+    <$ parseByte 4
+      <|> Fstore
+    <$ parseByte 5
+      <|> Ustore
+    <$ parseByte 6
+      <|> Iconst
+    <$ parseByte 7
+      <|> Fconst
+    <$ parseByte 8
+      <|> Uconst
+    <$ parseByte 9
+      <|> Iadd
+    <$ parseByte 10
+      <|> Fadd
+    <$ parseByte 11
+      <|> Isub
+    <$ parseByte 12
+      <|> Fsub
+    <$ parseByte 13
+      <|> Imul
+    <$ parseByte 14
+      <|> Fmul
+    <$ parseByte 15
+      <|> Idiv
+    <$ parseByte 16
+      <|> Fdiv
+    <$ parseByte 17
+      <|> Irem
+    <$ parseByte 18
+      <|> Ieq
+    <$ parseByte 19
+      <|> Ine
+    <$ parseByte 20
+      <|> Ilt
+    <$ parseByte 21
+      <|> Igt
+    <$ parseByte 22
+      <|> Ile
+    <$ parseByte 23
+      <|> Ige
+    <$ parseByte 24
+      <|> Feq
+    <$ parseByte 25
+      <|> Fne
+    <$ parseByte 26
+      <|> Flt
+    <$ parseByte 27
+      <|> Fgt
+    <$ parseByte 28
+      <|> Fle
+    <$ parseByte 29
+      <|> Fge
+    <$ parseByte 30
+      <|> Ift
+    <$ parseByte 31
+      <|> Iff
+    <$ parseByte 32
+      <|> Goto
+    <$ parseByte 33
+      <|> Iand
+    <$ parseByte 34
+      <|> Ior
+    <$ parseByte 35
+      <|> Ixor
+    <$ parseByte 36
+      <|> Invoke
+    <$ parseByte 37
+      <|> Return
+    <$ parseByte 38
+      <|> I2f
+    <$ parseByte 39
+      <|> F2i
+    <$ parseByte 40
+      <|> Pop
+    <$ parseByte 41
+      <|> Dup
+    <$ parseByte 42
+      <|> PopPrev
+    <$ parseByte 43
+      <|> IloadStack
+    <$ parseByte 44
+      <|> FloadStack
+    <$ parseByte 45
+      <|> UloadStack
+    <$ parseByte 46
 
-
-getIntegerFromBytes :: Integral a => [Char] -> a
+getIntegerFromBytes :: (Integral a) => [Char] -> a
 getIntegerFromBytes = foldl' (\acc x -> acc * 256 + fromIntegral (ord x)) 0
 
 getI8 :: String -> Int8
