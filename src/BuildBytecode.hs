@@ -351,6 +351,16 @@ getIf (If cond body1 body2) = MemoryState $ do
 
 getIf _ = return ()
 
+getUnOp :: Ast -> MemoryState ()
+getUnOp (UnOp op ast) = MemoryState $ do
+  runMemoryState (getAll ast)
+  stock <- get
+  case op of
+    BuildBytecode.Not -> put stock {bytecode = bytecode stock |> Bytecode.Not}
+    _ -> error "not supported Unary Operator"
+  
+getUnOp _ = return ()
+
 
 getBinOp :: Ast -> MemoryState ()
 getBinOp (BinOp op ast1 ast2) = MemoryState $ do

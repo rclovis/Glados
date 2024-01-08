@@ -73,6 +73,7 @@ data Bytecode
   | IloadStack Word8 IntTypes
   | FloadStack Word8 IntTypes
   | UloadStack Word8 IntTypes
+  | Not
   deriving (Show, Eq)
 
 word8toChar :: [Word8] -> B.ByteString
