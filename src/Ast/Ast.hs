@@ -46,13 +46,16 @@ getAst xs = do
       <|> getFunk xs
       <|> getCall xs
       <|> getIf xs
+      <|> getWhile xs
+      <|> getBreak xs
+      <|> getContinue xs
       <|> getDefine xs
       <|> getAssign xs
       <|> getReturn xs
       <|> case getValue [Parenthesis xs] of
         Nothing -> Nothing
         Just ast -> Just (ast, [])
-      <|> error ("Not implemented: " ++ show xs)
+      <|> error ("Unknown syntax: " ++ show xs)
   case getAst expr of
     Nothing -> pure (ast, expr)
     Just (ys, zs) -> pure (Seq (ast : [ys]), zs)
@@ -68,7 +71,7 @@ getValue xs =
     <|> getCallFunk xs
     <|> getNumber xs
     <|> getIdentifier xs
-    <|> error ("Not implemented: " ++ show xs)
+    <|> error ("Invalid Expression: " ++ show xs)
   where
     getCallFunk :: [Expr] -> Maybe Ast
     getCallFunk [FuncCall name (Parenthesis args)] = do
@@ -164,6 +167,21 @@ getCall (FuncCall name (Parenthesis args) : xs) = do
   args' <- getValue args
   pure (Call name [args'], xs)
 getCall _ = Nothing
+
+getWhile :: [Expr] -> Maybe (Ast, [Expr])
+getWhile (A Lexer.While : Parenthesis cond : Braces body : xs) = do
+  (cond', []) <- getAst cond
+  (body', []) <- getAst body
+  pure (While cond' body', xs)
+getWhile _ = Nothing
+
+getBreak :: [Expr] -> Maybe (Ast, [Expr])
+getBreak (A Lexer.Break : xs) = pure (Break, xs)
+getBreak _ = Nothing
+
+getContinue :: [Expr] -> Maybe (Ast, [Expr])
+getContinue (A Lexer.Continue : xs) = pure (Continue, xs)
+getContinue _ = Nothing
 
 getDefine :: [Expr] -> Maybe (Ast, [Expr])
 getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : A (Symbol "=") : xs) = do
