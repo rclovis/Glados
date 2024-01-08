@@ -1,14 +1,10 @@
-module Bytecode (IntTypes (..), getBin, bytecode, getIEEE, floatingStandardtoWord8, word8toChar, WordTypes (..), wordTypesTo8bit) where
-
-import Data.Char (digitToInt, intToDigit, chr)
-
-import Data.Int (Int8, Int16, Int32, Int64)
+module Bytecode (getBin, bytecode, Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..), getHumanReadable, getSizeBytecode) where
 
 import Data.Bits (shiftR, (.&.))
-
-import Data.Word (Word8, Word16, Word32, Word64)
-
 import qualified Data.ByteString as B
+import Data.Char (digitToInt)
+import Data.Int (Int16, Int32, Int64, Int8)
+import Data.Word (Word16, Word32, Word64, Word8)
 
 data IntTypes
   = Int8Val Int8
@@ -31,12 +27,12 @@ data FloatingPoint
 
 data Bytecode
   = Funk Word8 Word8 -- function with int size of arg and int size of body
-  | Iload Word8 Word8 -- load int from stack
-  | Fload Word8 Word8 -- load float from stack
-  | Uload Word8 Word8 -- load uint from stack
-  | Istore Word8 Word8 -- store int to stack
-  | Fstore Word8 Word8 -- store float to stacktraverse toBin xs
-  | Ustore Word8 Word8 -- store uint to stack
+  | Iload Word8 IntTypes -- load int from stack
+  | Fload Word8 IntTypes -- load float from stack
+  | Uload Word8 IntTypes -- load uint from stack
+  | Istore Word8 IntTypes -- store int to stack
+  | Fstore Word8 IntTypes -- store float to stacktraverse toBin xs
+  | Ustore Word8 IntTypes -- store uint to stack
   | Iconst Word8 IntTypes -- push int to stack
   | Fconst Word8 FloatingPoint -- push float to stack
   | Uconst Word8 WordTypes -- push uint to stack
@@ -50,72 +46,78 @@ data Bytecode
   | Fdiv -- divide float
   | Imod -- modulo int or uintù
   | Ieq -- equal int or uint
-  | Feq -- equal float
-  | Ineq -- not equal int or uint
-  | Fneq -- not equal float
-  | Igt -- greater than int or uint
-  | Fgt -- greater than float
+  | Ine -- not equal int or uint
   | Ilt -- less than int or uint
-  | Flt -- less than float
-  | Ige -- greater than or equal int or uint
-  | Fge -- greater than or equal float
+  | Igt -- greater than int or uint
   | Ile -- less than or equal int or uint
+  | Ige -- greater than or equal int or uint
+  | Feq -- equal float
+  | Fne -- not equal float
+  | Flt -- less than float
+  | Fgt -- greater than float
   | Fle -- less than or equal float
+  | Fge -- greater than or equal float
+  | Ift Word8 IntTypes -- if true jump of int bytes
+  | Iff Word8 IntTypes -- if false jump of int bytes
+  | Goto Word8 IntTypes -- jump of int bytes
   | Iand -- and int or uint
   | Ior -- or int or uint
   | Ixor -- xor int or uint
-  | Ift Word8 Int -- if true jump of int bytes
-  | Iff Word8 Int -- if false jump of int bytes
-  | Goto Word8 Int -- jump of int bytes
-  | Invoke Word8 Int -- invoke function at int index
+  | Invoke Word8 IntTypes -- invoke function at int index
   | Return -- return from function
   | I2f -- convert int to float
   | F2i -- convert float to int
-  | Consume Word8 Word8 -- consume Int args of the stack 
-  | NOTHING -- do nothing
+  | Pop Word8 IntTypes
+  | Dup Word8 IntTypes
+  | PopPrev Word8 IntTypes
+  | IloadStack Word8 IntTypes
+  | FloadStack Word8 IntTypes
+  | UloadStack Word8 IntTypes
+  | Not
+  deriving (Show, Eq)
 
 word8toChar :: [Word8] -> B.ByteString
 word8toChar = B.pack
 
 intTypesTo8bit :: IntTypes -> [Word8]
 intTypesTo8bit intType =
-    case intType of
-        Int8Val val -> reverse $ splitInt8 val
-        Int16Val val -> reverse $ splitInt16 val
-        Int32Val val -> reverse $ splitInt32 val
-        Int64Val val -> reverse $ splitInt64 val
+  case intType of
+    Int8Val val -> reverse $ splitInt8 val
+    Int16Val val -> reverse $ splitInt16 val
+    Int32Val val -> reverse $ splitInt32 val
+    Int64Val val -> reverse $ splitInt64 val
   where
     splitInt8 :: Int8 -> [Word8]
     splitInt8 val = [fromIntegral val]
 
     splitInt16 :: Int16 -> [Word8]
-    splitInt16 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0..1]]
+    splitInt16 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0 .. 1]]
 
     splitInt32 :: Int32 -> [Word8]
-    splitInt32 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0..3]]
+    splitInt32 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0 .. 3]]
 
     splitInt64 :: Int64 -> [Word8]
-    splitInt64 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0..7]]
+    splitInt64 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0 .. 7]]
 
 wordTypesTo8bit :: WordTypes -> [Word8]
 wordTypesTo8bit wordType =
-    case wordType of
-        Word8Val val -> reverse $ splitWord8 val
-        Word16Val val -> reverse $ splitWord16 val
-        Word32Val val -> reverse $ splitWord32 val
-        Word64Val val -> reverse $ splitWord64 val
+  case wordType of
+    Word8Val val -> reverse $ splitWord8 val
+    Word16Val val -> reverse $ splitWord16 val
+    Word32Val val -> reverse $ splitWord32 val
+    Word64Val val -> reverse $ splitWord64 val
   where
     splitWord8 :: Word8 -> [Word8]
     splitWord8 val = [val]
 
     splitWord16 :: Word16 -> [Word8]
-    splitWord16 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0..1]]
+    splitWord16 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0 .. 1]]
 
     splitWord32 :: Word32 -> [Word8]
-    splitWord32 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0..3]]
+    splitWord32 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0 .. 3]]
 
     splitWord64 :: Word64 -> [Word8]
-    splitWord64 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0..7]]
+    splitWord64 val = [fromIntegral (val `shiftR` (8 * i)) .&. 0xFF | i <- [0 .. 7]]
 
 -- transfrom binary string to list of Word8
 floatingStandardtoWord8 :: [Char] -> [Word8]
@@ -141,7 +143,7 @@ doubleToBinary f =
       fractionalPart = abs f - fromIntegral integerPart
       intBinary = toBinary integerPart
       fracBinary = dfractionToBinary fractionalPart
-  in intBinary ++ fracBinary
+   in intBinary ++ fracBinary
 
 dfractionToBinary :: Double -> [Char]
 dfractionToBinary f = dfracToBinStr f []
@@ -151,7 +153,7 @@ dfractionToBinary f = dfracToBinStr f []
     dfracToBinStr x acc =
       let dbl = x * 2
           (i, f') = properFraction dbl :: (Int, Double)
-      in dfracToBinStr f' (acc ++ show i)
+       in dfracToBinStr f' (acc ++ show i)
 
 getMantissaD :: [Char] -> [Char]
 getMantissaD f = f ++ padZeros (52 - length f) (toBinary 0)
@@ -186,7 +188,7 @@ fractionToBinary f = fracToBinStr f []
     fracToBinStr x acc =
       let dbl = x * 2
           (i, f') = properFraction dbl :: (Int, Float)
-      in fracToBinStr f' (acc ++ show i)
+       in fracToBinStr f' (acc ++ show i)
 
 -- Function to represent a float in binary
 floatToBinary :: Float -> [Char]
@@ -195,7 +197,7 @@ floatToBinary f =
       fractionalPart = abs f - fromIntegral integerPart
       intBinary = toBinary integerPart
       fracBinary = fractionToBinary fractionalPart
-  in intBinary ++ fracBinary
+   in intBinary ++ fracBinary
 
 getMantissa :: [Char] -> [Char]
 getMantissa f = f ++ padZeros (23 - length f) (toBinary 0)
@@ -208,11 +210,6 @@ getSign f
   | f < 0 = "1"
   | otherwise = "0"
 
-toHexa :: Int -> Char
-toHexa n
-  | n < 10 = toEnum (n + fromEnum '0')
-  | otherwise = toEnum (n - 10 + fromEnum 'A')
-
 padZeros :: Int -> [Char] -> [Char]
 padZeros len str = replicate (max 0 (len - length str)) '0' ++ str
 
@@ -221,12 +218,12 @@ getBin = B.pack . concatMap toBin
 
 toBin :: Bytecode -> [Word8]
 toBin (Funk a b) = [0, a, b]
-toBin (Iload a b) = [1, a, b]
-toBin (Fload a b) = [2, a, b]
-toBin (Uload a b) = [3, a, b]
-toBin (Istore a b) = [4, a, b]
-toBin (Fstore a b) = [5, a, b]
-toBin (Ustore a b) = [6, a, b]
+toBin (Iload a b) = [1, a] ++ intTypesTo8bit b
+toBin (Fload a b) = [2, a] ++ intTypesTo8bit b
+toBin (Uload a b) = [3, a] ++ intTypesTo8bit b
+toBin (Istore a b) = [4, a] ++ intTypesTo8bit b
+toBin (Fstore a b) = [5, a] ++ intTypesTo8bit b
+toBin (Ustore a b) = [6, a] ++ intTypesTo8bit b
 toBin (Iconst a b) = [7, a] ++ intTypesTo8bit b
 toBin (Fconst a b) = [8, a] ++ floatingPointToW8 b
 toBin (Uconst a b) = [9, a] ++ wordTypesTo8bit b
@@ -240,29 +237,33 @@ toBin Idiv = [16]
 toBin Fdiv = [17]
 toBin Imod = [18]
 toBin Ieq = [19]
-toBin Feq = [20]
-toBin Ineq = [21]
-toBin Fneq = [22]
-toBin Igt = [23]
-toBin Fgt = [24]
-toBin Ilt = [25]
-toBin Flt = [26]
-toBin Ige = [27]
-toBin Fge = [28]
-toBin Ile = [29]
-toBin Fle = [30]
-toBin Iand = [31]
-toBin Ior = [32]
-toBin Ixor = [33]
-toBin (Ift a b) = [34, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
-toBin (Iff a b) = [35, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
-toBin (Goto a b) = [36, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
-toBin (Invoke a b) = [37, a] ++ intTypesTo8bit (Int32Val (fromIntegral b))
+toBin Ine = [20]
+toBin Ilt = [21]
+toBin Igt = [22]
+toBin Ile = [23]
+toBin Ige = [24]
+toBin Feq = [25]
+toBin Fne = [26]
+toBin Flt = [27]
+toBin Fgt = [28]
+toBin Fle = [29]
+toBin Fge = [30]
+toBin (Ift a b) = [31, a] ++ intTypesTo8bit b
+toBin (Iff a b) = [32, a] ++ intTypesTo8bit b
+toBin (Goto a b) = [33, a] ++ intTypesTo8bit b
+toBin Iand = [34]
+toBin Ior = [35]
+toBin Ixor = [36]
+toBin (Invoke a b) = [37, a] ++ intTypesTo8bit b
 toBin Return = [38]
 toBin I2f = [39]
 toBin F2i = [40]
-toBin (Consume a b) = [41, a, b]
-toBin NOTHING = []
+toBin (Pop a b) = [41, a] ++ intTypesTo8bit b
+toBin (Dup a b) = [42, a] ++ intTypesTo8bit b
+toBin (PopPrev a b) = [43, a] ++ intTypesTo8bit b
+toBin (IloadStack a b) = [44, a] ++ intTypesTo8bit b
+toBin (FloadStack a b) = [45, a] ++ intTypesTo8bit b
+toBin (UloadStack a b) = [46, a] ++ intTypesTo8bit b
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
@@ -289,8 +290,8 @@ toHumanReadable Fdiv = "  Fdiv\n"
 toHumanReadable Imod = "  Imod\n"
 toHumanReadable Ieq = "  Ieq\n"
 toHumanReadable Feq = "  Feq\n"
-toHumanReadable Ineq = "  Ineq\n"
-toHumanReadable Fneq = "  Fneq\n"
+toHumanReadable Ine = "  Ineq\n"
+toHumanReadable Fne = "  Fneq\n"
 toHumanReadable Igt = "  Igt\n"
 toHumanReadable Fgt = "  Fgt\n"
 toHumanReadable Ilt = "  Ilt\n"
@@ -309,22 +310,80 @@ toHumanReadable (Invoke _ b) = "  Invoke " ++ show b ++ "\n"
 toHumanReadable Return = "  Return\n"
 toHumanReadable I2f = "  I2f\n"
 toHumanReadable F2i = "  F2i\n"
-toHumanReadable (Consume _ b) = "  Consume " ++ show b ++ "\n"
-toHumanReadable NOTHING = "\n"
+toHumanReadable (Pop _ b) = "  Pop " ++ show b ++ "\n"
+toHumanReadable (Dup _ b) = "  Dup " ++ show b ++ "\n"
+toHumanReadable (PopPrev _ b) = "  PopPrev " ++ show b ++ "\n"
+toHumanReadable (IloadStack _ b) = "  IloadStack " ++ show b ++ "\n"
+toHumanReadable (FloadStack _ b) = "  FloadStack " ++ show b ++ "\n"
+toHumanReadable (UloadStack _ b) = "  UloadStack " ++ show b ++ "\n"
 
 bytecode :: [Bytecode]
 bytecode =
-    [
-      Funk 1 26,
-      Iload 4 1,
-      Iload 4 2,
-      Iadd,
-      Istore 4 3,
-      Iload 4 3,
-      Return,
-      Iconst 4 (Int32Val 1),
-      Iconst 4 (Int32Val 2),
-      Invoke 1 0,
-      Uconst 2 (Word16Val 255),
-      Fconst 8 (DoubleVal 154541.452)
-    ]
+  [ Funk 1 56,
+    IloadStack 1 (Int64Val 0),
+    Iconst 8 (Int64Val 0),
+    Ieq,
+    Iff 1 (Int8Val 14),
+    Iconst 8 (Int64Val 1),
+    Return,
+    IloadStack 1 (Int64Val 0),
+    IloadStack 1 (Int64Val 0),
+    Iconst 8 (Int64Val 1),
+    Isub,
+    Invoke 1 (Int8Val 0),
+    PopPrev 1 (Int64Val 1),
+    Imul,
+    Return,
+    Iconst 8 (Int64Val 5),
+    Invoke 1 (Int8Val 0),
+    PopPrev 1 (Int64Val 1)
+  ]
+
+getSizeBytecode :: Bytecode -> Int
+getSizeBytecode (Funk x _) = fromIntegral x + 2
+getSizeBytecode (Iload x _) = fromIntegral x + 2
+getSizeBytecode (Fload x _) = fromIntegral x + 2
+getSizeBytecode (Uload x _) = fromIntegral x + 2
+getSizeBytecode (Istore x _) = fromIntegral x + 2
+getSizeBytecode (Fstore x _) = fromIntegral x + 2
+getSizeBytecode (Ustore x _) = fromIntegral x + 2
+getSizeBytecode (Iconst x _) = fromIntegral x + 2
+getSizeBytecode (Fconst x _) = fromIntegral x + 2
+getSizeBytecode (Uconst x _) = fromIntegral x + 2
+getSizeBytecode Iadd = 1
+getSizeBytecode Fadd = 1
+getSizeBytecode Isub = 1
+getSizeBytecode Fsub = 1
+getSizeBytecode Imul = 1
+getSizeBytecode Fmul = 1
+getSizeBytecode Idiv = 1
+getSizeBytecode Fdiv = 1
+getSizeBytecode Imod = 1
+getSizeBytecode Ieq = 1
+getSizeBytecode Ine = 1
+getSizeBytecode Ilt = 1
+getSizeBytecode Igt = 1
+getSizeBytecode Ile = 1
+getSizeBytecode Ige = 1
+getSizeBytecode Feq = 1
+getSizeBytecode Fne = 1
+getSizeBytecode Flt = 1
+getSizeBytecode Fgt = 1
+getSizeBytecode Fle = 1
+getSizeBytecode Fge = 1
+getSizeBytecode (Ift x _) = fromIntegral x + 2
+getSizeBytecode (Iff x _) = fromIntegral x + 2
+getSizeBytecode (Goto x _) = fromIntegral x + 2
+getSizeBytecode Iand = 1
+getSizeBytecode Ior = 1
+getSizeBytecode Ixor = 1
+getSizeBytecode (Invoke x _) = fromIntegral x + 2
+getSizeBytecode Return = 1
+getSizeBytecode I2f = 1
+getSizeBytecode F2i = 1
+getSizeBytecode (Pop x _) = fromIntegral x + 2
+getSizeBytecode (Dup x _) = fromIntegral x + 2
+getSizeBytecode (PopPrev x _) = fromIntegral x + 2
+getSizeBytecode (IloadStack x _) = fromIntegral x + 2
+getSizeBytecode (FloadStack x _) = fromIntegral x + 2
+getSizeBytecode (UloadStack x _) = fromIntegral x + 2

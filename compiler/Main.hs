@@ -9,15 +9,17 @@ import System.Environment (getArgs)
 
 import Data.Char (chr)
 
-import Bytecode (IntTypes (..), getBin, bytecode, getIEEE, floatingStandardtoWord8, word8toChar)
+import Bytecode (getBin, bytecode, getHumanReadable)
+import BuildBytecode (mainBytecodeTest)
 
 import qualified Data.ByteString as B
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let filename = head args
-  contents <- readFile filename
-  let tokens = tokenize contents
-  let test = getBin bytecode
-  B.putStr $ test
+  -- args <- getArgs
+  -- let filename = head args
+  -- contents <- readFile filename
+  -- let tokens = tokenize contents
+  -- let test = getHumanReadable bytecode
+  -- putStr $ test
+  mainBytecodeTest

@@ -33,7 +33,7 @@
 | 0x0C, 0x0D    | `isub`, `fsub`                           | False          |
 | 0x0E, 0x0F    | `imul`, `fmul`                           | False          |
 | 0x10, 0x11    | `idiv`, `fdiv`                           | False          |
-| 0x12          | `irem`                                   | False          |
+| 0x12          | `imod`                                   | False          |
 | 0x13 ... 0x18 | `ieq`, `ine`, `ilt`, `igt`, `ile`, `ige` | False          |
 | 0x19 ... 0x1E | `feq`, `fne`, `flt`, `fgt`, `fle`, `fge` | False          |
 | 0x1F, 0x20    | `ift`, `iff`                             | True          |
@@ -46,3 +46,4 @@
 | 0x2A          | `dup`                                    | True          |
 | 0x2B          | `popPrev`                                | True          |
 | 0x2C ... 0x2E | `iloadStack`, `floadStack`, `uloadStack` | True          |
+| 0x2F          | `not`                                    | False          |
