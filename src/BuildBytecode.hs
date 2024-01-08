@@ -164,8 +164,8 @@ testAst =
             ( Seq
                 [ If
                     (BinOp Eq (Var "n") (Int 0))
-                    (Seq [Int 5])
-                    (Seq [Int 3]),
+                    (Seq [Int 1])
+                    (Seq [Float 5.52]),
                   Seq
                     [ BinOp Mul (Var "n") (Call "factorial" [BinOp Sub (Var "n") (Int 1)])
                     ]
@@ -326,10 +326,14 @@ getIf (If cond body1 body2) = MemoryState $ do
   let save1 = S.length (bytecode stock1)
   runMemoryState (getAll body2)
   stock2 <- get
-  -- add return or goto here ? discuss with vis
-  sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
-  put stock2 {bytecode = S.take save1 (bytecode stock2) <> S.singleton (Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode + 4)))) <> S.drop save1 (bytecode stock2)}
+  let goto = S.length (bytecode stock2)
   runMemoryState (getAll body1)
+  stock4 <- get
+  sizeofBytecode2 <- runMemoryState (memoryGetSizeBytecodeXtoY goto (S.length (bytecode stock4)))
+  put stock4 {bytecode = S.take goto (bytecode stock4) <> S.singleton (Goto 2 (correspondingInt 2 (toInteger (sizeofBytecode2 + 4)))) <> S.drop goto (bytecode stock4)}
+  stock5 <- get
+  sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2) + 1))
+  put stock5 {bytecode = S.take save1 (bytecode stock5) <> S.singleton (Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode + 4)))) <> S.drop save1 (bytecode stock5)}
 
 getIf _ = return ()
 
