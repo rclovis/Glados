@@ -28,7 +28,11 @@ library
       Ast.Op
       Ast.Types
       Ast.Utils
+      Bytecode
+      EvalVm
       Lexer
+      LexerVm
+      OpNumber
       Parser
   other-modules:
       Paths_glados
@@ -39,7 +43,9 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
+    , mtl
   default-language: Haskell2010
 
 executable compiler-exe
@@ -53,8 +59,10 @@ executable compiler-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , glados
+    , mtl
   default-language: Haskell2010
 
 executable vm-exe
@@ -68,8 +76,10 @@ executable vm-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , bytestring
     , containers
     , glados
+    , mtl
   default-language: Haskell2010
 
 test-suite glados-test
@@ -85,6 +95,8 @@ test-suite glados-test
   build-depends:
       HUnit >=1.6.2.0
     , base >=4.7 && <5
+    , bytestring
     , containers
     , glados
+    , mtl
   default-language: Haskell2010

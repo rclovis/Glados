@@ -1,8 +1,0 @@
-funk factorial(a: i64): i64 {
-  if (b) {
-    return 1;
-  }
-  return c * factorial(d);
-}
-
-return factorial(5);

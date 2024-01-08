@@ -22,6 +22,8 @@ import Parser
     parseQuantity,
     parseSome,
     parseString,
+    parseUFloat,
+    parseUInt,
     runParser,
   )
 
@@ -106,10 +108,43 @@ parseOpenBrace :: Parser Token
 parseOpenBrace = fmap (const OpenBrace) (parseChar '{')
 
 parseType :: Parser Token
-parseType = fmap Type (fmap (const I8) (parseString "i8") <|> fmap (const I16) (parseString "i16") <|> fmap (const I32) (parseString "i32") <|> fmap (const I64) (parseString "i64") <|> fmap (const F32) (parseString "f32") <|> fmap (const F64) (parseString "f64") <|> fmap (const ISize) (parseString "isize") <|> fmap (const U8) (parseString "u8") <|> fmap (const U16) (parseString "u16") <|> fmap (const U32) (parseString "u32") <|> fmap (const U64) (parseString "u64") <|> fmap (const USize) (parseString "usize") <|> fmap (const Bool) (parseString "bool"))
+parseType =
+  fmap
+    Type
+    ( fmap (const I8) (parseString "i8")
+        <|> fmap (const I16) (parseString "i16")
+        <|> fmap (const I32) (parseString "i32")
+        <|> fmap (const I64) (parseString "i64")
+        <|> fmap (const F32) (parseString "f32")
+        <|> fmap (const F64) (parseString "f64")
+        <|> fmap (const ISize) (parseString "isize")
+        <|> fmap (const U8) (parseString "u8")
+        <|> fmap (const U16) (parseString "u16")
+        <|> fmap (const U32) (parseString "u32")
+        <|> fmap (const U64) (parseString "u64")
+        <|> fmap (const USize) (parseString "usize")
+        <|> fmap (const Bool) (parseString "bool")
+    )
 
 parseOperator :: Parser Token
-parseOperator = fmap Operator (fmap (const Add) (parseChar '+') <|> fmap (const Sub) (parseChar '-') <|> fmap (const Mul) (parseString "* ") <|> fmap (const Div) (parseChar '/') <|> fmap (const Mod) (parseChar '%') <|> fmap (const And) (parseString "&&") <|> fmap (const Or) (parseString "||") <|> fmap (const Not) (parseChar '!') <|> fmap (const Equal) (parseString "==") <|> fmap (const NotEqual) (parseString "!=") <|> fmap (const Less) (parseChar '<') <|> fmap (const LessEqual) (parseString "<=") <|> fmap (const Greater) (parseChar '>') <|> fmap (const GreaterEqual) (parseString ">="))
+parseOperator =
+  fmap
+    Operator
+    ( fmap (const Mul) (parseString "* ")
+        <|> fmap (const And) (parseString "&&")
+        <|> fmap (const Or) (parseString "||")
+        <|> fmap (const Equal) (parseString "==")
+        <|> fmap (const NotEqual) (parseString "!=")
+        <|> fmap (const LessEqual) (parseString "<=")
+        <|> fmap (const GreaterEqual) (parseString ">=")
+        <|> fmap (const Add) (parseChar '+')
+        <|> fmap (const Sub) (parseChar '-')
+        <|> fmap (const Div) (parseChar '/')
+        <|> fmap (const Mod) (parseChar '%')
+        <|> fmap (const Not) (parseChar '!')
+        <|> fmap (const Greater) (parseChar '>')
+        <|> fmap (const Less) (parseChar '<')
+    )
 
 parseFunk :: Parser Token
 parseFunk = fmap (const Funk) (parseString "funk")

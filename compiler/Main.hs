@@ -5,6 +5,12 @@ import Ast.Expr (genExpr)
 import Lexer (tokenize)
 import System.Environment (getArgs)
 
+import Data.Char (chr)
+
+import Bytecode (IntTypes (..), getBin, bytecode, getIEEE, floatingStandardtoWord8, word8toChar)
+
+import qualified Data.ByteString as B
+
 main :: IO ()
 main = do
   fileNames <- getArgs
