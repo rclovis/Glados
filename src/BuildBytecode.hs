@@ -189,11 +189,19 @@ memoryGetFunk name ((nameFunk, args) :<| xs) = MemoryState $ do
 
 memoryGetFunkIndex :: String -> Seq (String, Seq (String, Type)) -> Int
 memoryGetFunkIndex _ S.Empty = error "Empty"
-memoryGetFunkIndex name ((nameFunk, args) :<| xs) =
+memoryGetFunkIndex name ((nameFunk, _) :<| xs) =
   if name == nameFunk then
     0
   else
     1 + memoryGetFunkIndex name xs
+
+memoryGetVarIndex :: String -> Seq (String, Type) -> Int
+memoryGetVarIndex _ S.Empty = error "Empty"
+memoryGetVarIndex name ((nameVar, _) :<| xs) =
+  if name == nameVar then
+    0
+  else
+    1 + memoryGetVarIndex name xs
 
 memoryPushVarScope :: MemoryState ()
 memoryPushVarScope = MemoryState $ do
@@ -204,6 +212,11 @@ memoryPopVarScope :: MemoryState ()
 memoryPopVarScope = MemoryState $ do
   stock <- get
   put stock {memVar = S.drop 1 (memVar stock)}
+
+memoryGetTopScope :: MemoryState (S.Seq (String, Type))
+memoryGetTopScope = MemoryState $ do
+  stock <- get
+  return (S.index (memVar stock) 0)
 
 memoryPushVar :: String -> Type -> MemoryState ()
 memoryPushVar name type_ = MemoryState $ do
@@ -248,6 +261,7 @@ encodeArgs :: S.Seq (String, Type) -> Int -> MemoryState ()
 encodeArgs S.Empty _ = return ()
 encodeArgs ((name, t) :<| xs) g = MemoryState $ do
   stock <- get
+  runMemoryState (memoryPushVar name t)
   if isInt t then
     put stock {bytecode = bytecode stock |> IloadStack 2 (correspondingInt 2 (toInteger (S.length xs))) |> Istore 2 (correspondingInt 2 (toInteger g))}
   else if isUnsigned t then
@@ -257,14 +271,12 @@ encodeArgs ((name, t) :<| xs) g = MemoryState $ do
   runMemoryState (memoryPushVar name t)
   runMemoryState (encodeArgs xs (g + 1))
 
-
-
 getFunk :: S.Seq (String, Type) -> Ast -> MemoryState ()
 getFunk args ast = MemoryState $ do
-  stock <- get
+  runMemoryState memoryPushVarScope
   runMemoryState (encodeArgs args 0)
   runMemoryState (getAll ast)
-
+  runMemoryState memoryPopVarScope
 
 memoryAddFunk :: String -> S.Seq (String, Type) -> MemoryState ()
 memoryAddFunk name args = MemoryState $ do
@@ -286,16 +298,6 @@ getDefine (Define name _ (Lambda args body)) = MemoryState $ do
 getDefine _ = return ()
 
 getAssign :: Ast -> MemoryState ()
-getAssign (Assign name (Lambda args body)) = MemoryState $ do
-  runMemoryState (memoryAddFunk name (argToSeq args))
-  stock1 <- get
-  put stock1 {bytecode = bytecode stock1 |> Funk 4 0}
-  i <- gets (S.length . bytecode)
-  runMemoryState (getFunk (argToSeq args) body)
-  stock2 <- get
-  funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
-  runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (fromIntegral funkSize)))
-
 getAssign _ = MemoryState $ do
   stock <- get
   put stock {bytecode = bytecode stock}
@@ -373,6 +375,20 @@ getBinOp (BinOp op ast1 ast2) = MemoryState $ do
     _ -> error "not supported Binary Operator"
 getBinOp _ = return ()
 
+getId :: Ast -> MemoryState ()
+getId (Id name) = MemoryState $ do
+  stock <- get
+  put stock {bytecode = bytecode stock |> Iload 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
+getId _ = return ()
+
+
+getReturn :: Ast -> MemoryState ()
+getReturn (BuildBytecode.Return ast) = MemoryState $ do
+  runMemoryState (getAll ast)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Bytecode.Return}
+getReturn _ = return ()
+
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
@@ -397,6 +413,13 @@ getAll (If cond body1 body2) = MemoryState $ do
 
 getAll (Define name type_ (Lambda args body)) = MemoryState $ do
   runMemoryState (getDefine (Define name type_ (Lambda args body)))
+
+getAll (Id name) = MemoryState $ do
+  runMemoryState (getId (Id name))
+
+getAll (BuildBytecode.Return ast) = MemoryState $ do
+  runMemoryState (getReturn (BuildBytecode.Return ast))
+
 
 getAll _ = return ()
 
