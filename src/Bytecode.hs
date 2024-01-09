@@ -74,6 +74,9 @@ data Bytecode
   | FloadStack Word8 IntTypes
   | UloadStack Word8 IntTypes
   | Not
+  | Iconvert Word8 Word8
+  | Fconvert Word8 Word8
+  | Uconvert Word8 Word8
   deriving (Show, Eq)
 
 word8toChar :: [Word8] -> B.ByteString
@@ -264,6 +267,10 @@ toBin (PopPrev a b) = [43, a] ++ intTypesTo8bit b
 toBin (IloadStack a b) = [44, a] ++ intTypesTo8bit b
 toBin (FloadStack a b) = [45, a] ++ intTypesTo8bit b
 toBin (UloadStack a b) = [46, a] ++ intTypesTo8bit b
+toBin Not = [47]
+toBin (Iconvert a b) = [48, a, b]
+toBin (Fconvert a b) = [49, a, b]
+toBin (Uconvert a b) = [50, a, b]
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
@@ -316,6 +323,10 @@ toHumanReadable (PopPrev _ b) = "  PopPrev " ++ show b ++ "\n"
 toHumanReadable (IloadStack _ b) = "  IloadStack " ++ show b ++ "\n"
 toHumanReadable (FloadStack _ b) = "  FloadStack " ++ show b ++ "\n"
 toHumanReadable (UloadStack _ b) = "  UloadStack " ++ show b ++ "\n"
+toHumanReadable Not = "  Not\n"
+toHumanReadable (Iconvert _ b) = "  Iconvert " ++ show b ++ "\n"
+toHumanReadable (Fconvert _ b) = "  Fconvert " ++ show b ++ "\n"
+toHumanReadable (Uconvert _ b) = "  Uconvert " ++ show b ++ "\n"
 
 bytecode :: [Bytecode]
 bytecode =
@@ -387,3 +398,7 @@ getSizeBytecode (PopPrev x _) = fromIntegral x + 2
 getSizeBytecode (IloadStack x _) = fromIntegral x + 2
 getSizeBytecode (FloadStack x _) = fromIntegral x + 2
 getSizeBytecode (UloadStack x _) = fromIntegral x + 2
+getSizeBytecode Not = 1
+getSizeBytecode (Iconvert _ _) = 3
+getSizeBytecode (Fconvert _ _) = 3
+getSizeBytecode (Uconvert _ _) = 3

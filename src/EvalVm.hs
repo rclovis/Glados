@@ -436,7 +436,31 @@ exec (_, UloadStack, v) _ = do
   operationAddIp
   a <- operationGetStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - getIntegral v)
   operationPushStack a
-
+exec (_, Iconvert, v) _ = do
+  operationAddIp
+  a <- operationPopStack
+  case getIntegral v :: Int of
+    1 -> operationPushStack (I8 (getIntegral a))
+    2 -> operationPushStack (I16 (getIntegral a))
+    4 -> operationPushStack (I32 (getIntegral a))
+    8 -> operationPushStack (I64 (getIntegral a))
+    _ -> operationPushStack (I64 (getIntegral a))
+exec (_, Fconvert, v) _ = do
+  operationAddIp
+  a <- operationPopStack
+  case getIntegral v :: Int of
+    4 -> operationPushStack (F32 (getFloating a))
+    8 -> operationPushStack (F64 (getFloating a))
+    _ -> operationPushStack (F64 (getFloating a))
+exec (_, Uconvert, v) _ = do
+  operationAddIp
+  a <- operationPopStack
+  case getIntegral v :: Int of
+    1 -> operationPushStack (U8 (getIntegral a))
+    2 -> operationPushStack (U16 (getIntegral a))
+    4 -> operationPushStack (U32 (getIntegral a))
+    8 -> operationPushStack (U64 (getIntegral a))
+    _ -> operationPushStack (U64 (getIntegral a))
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
@@ -445,7 +469,7 @@ execOp :: [Instruction] -> Operation ()
 execOp i = do
   cpu <- Operation get
   if ip cpu >= Prelude.length i
-  -- if loop cpu == 14
+  -- if loop cpu == 8
     then return ()
     else do
       exec (i !! ip cpu) i
@@ -454,6 +478,6 @@ execOp i = do
 
 mainTest :: [Instruction] -> IO ()
 mainTest i = do
-  print i
+  -- print i
   let cpu' = execState (runOperation (execOp i)) emptyCpu
   print cpu'

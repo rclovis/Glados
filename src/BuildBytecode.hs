@@ -6,7 +6,7 @@ import Bytecode (Bytecode (..), FloatingPoint (..), IntTypes (..), WordTypes (..
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
 import Data.Sequence as S
-import LexerVm (Variable (..), OpCode (Invoke))
+import LexerVm (Variable (..), OpCode (Invoke, Iconvert))
 import Ast.Ast (Ast (..), Arg)
 import Ast.Op (Op (..))
 import Ast.Types (Type (..))
@@ -323,11 +323,31 @@ getSeq (Seq (x:xs)) = MemoryState $ do
   runMemoryState (getSeq (Seq xs))
 getSeq _ = return ()
 
+pushArgs :: [Ast] -> Seq (String, Type) -> MemoryState ()
+pushArgs [] _ = return ()
+pushArgs (x:xs) ((_, t) :<| ys) = MemoryState $ do
+  runMemoryState (getAll x)
+  stock <- get
+  case t of
+    Ti8 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 1}
+    Ti16 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 2}
+    Ti32 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 4}
+    Ti64 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 8}
+    Tu8 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 1}
+    Tu16 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 2}
+    Tu32 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 4}
+    Tu64 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 8}
+    Tf32 -> put stock {bytecode = bytecode stock |> Bytecode.Fconvert 1 4}
+    Tf64 -> put stock {bytecode = bytecode stock |> Bytecode.Fconvert 1 8}
+  runMemoryState (pushArgs xs ys)
+pushArgs _ _ = return ()
+
 getCall :: Ast -> MemoryState ()
 getCall (Call name args) = MemoryState $ do
   stock1 <- get
   funk <- runMemoryState (memoryGetFunk name (memFunk stock1))
-  runMemoryState (getSeq (Seq args))
+  runMemoryState (pushArgs args funk)
+  -- runMemoryState (pushArgs args funk)
   stock2 <- get
   put stock2 {bytecode = bytecode stock2
     |> Bytecode.Invoke 2 (correspondingInt 2 (toInteger (memoryGetFunkIndex name (memFunk stock2))))

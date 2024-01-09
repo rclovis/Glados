@@ -70,6 +70,10 @@ data OpCode
   | IloadStack
   | FloadStack
   | UloadStack
+  | Not
+  | Iconvert
+  | Fconvert
+  | Uconvert
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -184,6 +188,14 @@ parserInstruction =
     <$ parseByte 45
       <|> UloadStack
     <$ parseByte 46
+      <|> Not
+    <$ parseByte 47
+      <|> Iconvert
+    <$ parseByte 48
+      <|> Fconvert
+    <$ parseByte 49
+      <|> Uconvert
+    <$ parseByte 50
 
 getIntegerFromBytes :: (Integral a) => [Char] -> a
 getIntegerFromBytes = foldl' (\acc x -> acc * 256 + fromIntegral (ord x)) 0
@@ -280,6 +292,10 @@ parserCouple = Parser f
       Just (IloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
       Just (FloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
       Just (UloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
+      Just (Not, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
+      Just (Iconvert, _) -> runParser (parseAndWith (\x y -> (3, x, y)) parserInstruction parserVariableI) s
+      Just (Fconvert, _) -> runParser (parseAndWith (\x y -> (3, x, y)) parserInstruction parserVariableI) s
+      Just (Uconvert, _) -> runParser (parseAndWith (\x y -> (3, x, y)) parserInstruction parserVariableI) s
       Nothing -> Nothing
 
 vmToken :: String -> Maybe [Instruction]
