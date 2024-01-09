@@ -1,6 +1,6 @@
 module Bytecode (getBin, bytecode, Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..), getHumanReadable, getSizeBytecode) where
 
-import Data.Bits (shiftR, (.&.))
+import Data.Bits (shiftR, (.&.)) 
 import qualified Data.ByteString as B
 import Data.Char (digitToInt)
 import Data.Int (Int16, Int32, Int64, Int8)
@@ -78,9 +78,6 @@ data Bytecode
   | Fconvert Word8 Word8
   | Uconvert Word8 Word8
   deriving (Show, Eq)
-
-word8toChar :: [Word8] -> B.ByteString
-word8toChar = B.pack
 
 intTypesTo8bit :: IntTypes -> [Word8]
 intTypesTo8bit intType =

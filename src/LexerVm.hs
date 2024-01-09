@@ -200,6 +200,27 @@ parserInstruction =
 getIntegerFromBytes :: (Integral a) => [Char] -> a
 getIntegerFromBytes = foldl' (\acc x -> acc * 256 + fromIntegral (ord x)) 0
 
+getFloatFromBits :: (Floating a) => [Char] -> a
+getFloatFromBits bits
+  | length bits == 32 = decodeFloatFrom32Bits bits
+  | length bits == 64 = decodeFloatFrom64Bits bits
+  | otherwise = error "Invalid byte length, expecting either 32 or 64 bits"
+
+decodeFloatFrom32Bits :: (Floating a) => [Char] -> a
+decodeFloatFrom32Bits bits =
+    let sign = if take 1 bits == "0" then 1 else -1
+        expo = foldl' (\acc x -> acc * 2 + ord x - 48) 0 (take 8 (drop 1 bits))
+        mantissa = 1 + foldr (\(bit, position) acc -> if bit == '1' then acc + 1.0 / (2.0 ^ position) else acc) 0.0 (zip (drop 9 bits) [1..23])
+    in fromRational (toRational (sign * mantissa * 2 ^ (expo - 127)))
+
+decodeFloatFrom64Bits :: (Floating a) => [Char] -> a
+decodeFloatFrom64Bits bits =
+    let sign = if take 1 bits == "0" then 1 else -1
+        expo = foldl' (\acc x -> acc * 2 + ord x - 48) 0 (take 11 (drop 1 bits))
+        mantissa = 1 + foldr (\(bit, position) acc -> if bit == '1' then acc + 1.0 / (2.0 ^ position) else acc) 0.0 (zip (drop 12 bits) [1..52])
+    in fromRational (toRational (sign * mantissa * 2 ^ (expo - 1023)))
+
+
 getI8 :: String -> Int8
 getI8 = getIntegerFromBytes
 
