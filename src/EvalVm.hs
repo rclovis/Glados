@@ -449,6 +449,8 @@ exec (_, Fconvert, v) _ = do
   operationAddIp
   a <- operationPopStack
   case getIntegral v :: Int of
+    1 -> operationPushStack (F32 (getFloating a))
+    2 -> operationPushStack (F32 (getFloating a))
     4 -> operationPushStack (F32 (getFloating a))
     8 -> operationPushStack (F64 (getFloating a))
     _ -> operationPushStack (F64 (getFloating a))
@@ -478,6 +480,6 @@ execOp i = do
 
 mainTest :: [Instruction] -> IO ()
 mainTest i = do
-  -- print i
+  print i
   let cpu' = execState (runOperation (execOp i)) emptyCpu
   print cpu'

@@ -1,3 +1,4 @@
+-- {-# LANGUAGE InstanceSigs #-}
 module LexerVm
   ( vmToken,
     OpCode (..),
@@ -12,15 +13,8 @@ import Data.Char
 import Data.Int
 import Data.List (foldl')
 import Data.Word
--- import Ast.Eval (exec)
-import Parser
-  ( Parser (..),
-    parseAndWith,
-    parseByte,
-    parseMany,
-    parseNothing,
-    runParser,
-  )
+import qualified Data.ByteString.Lazy as BL
+import Data.Binary.Get
 
 data OpCode
   = Funk
@@ -92,140 +86,149 @@ data Variable
 
 type Instruction = (Int, OpCode, Variable)
 
-parserInstruction :: Parser OpCode
-parserInstruction =
+getWord8Value :: Word8 -> Get ()
+getWord8Value exValue = do
+  value <- getWord8
+  if value == exValue
+    then return ()
+    else fail "Invalid value"
+
+getInstruction :: Get OpCode
+getInstruction =
   Funk
-    <$ parseByte 0
+    <$ getWord8Value 0
       <|> Iload
-    <$ parseByte 1
+    <$ getWord8Value 1
       <|> Fload
-    <$ parseByte 2
+    <$ getWord8Value 2
       <|> Uload
-    <$ parseByte 3
+    <$ getWord8Value 3
       <|> Istore
-    <$ parseByte 4
+    <$ getWord8Value 4
       <|> Fstore
-    <$ parseByte 5
+    <$ getWord8Value 5
       <|> Ustore
-    <$ parseByte 6
+    <$ getWord8Value 6
       <|> Iconst
-    <$ parseByte 7
+    <$ getWord8Value 7
       <|> Fconst
-    <$ parseByte 8
+    <$ getWord8Value 8
       <|> Uconst
-    <$ parseByte 9
+    <$ getWord8Value 9
       <|> Iadd
-    <$ parseByte 10
+    <$ getWord8Value 10
       <|> Fadd
-    <$ parseByte 11
+    <$ getWord8Value 11
       <|> Isub
-    <$ parseByte 12
+    <$ getWord8Value 12
       <|> Fsub
-    <$ parseByte 13
+    <$ getWord8Value 13
       <|> Imul
-    <$ parseByte 14
+    <$ getWord8Value 14
       <|> Fmul
-    <$ parseByte 15
+    <$ getWord8Value 15
       <|> Idiv
-    <$ parseByte 16
+    <$ getWord8Value 16
       <|> Fdiv
-    <$ parseByte 17
+    <$ getWord8Value 17
       <|> Irem
-    <$ parseByte 18
+    <$ getWord8Value 18
       <|> Ieq
-    <$ parseByte 19
+    <$ getWord8Value 19
       <|> Ine
-    <$ parseByte 20
+    <$ getWord8Value 20
       <|> Ilt
-    <$ parseByte 21
+    <$ getWord8Value 21
       <|> Igt
-    <$ parseByte 22
+    <$ getWord8Value 22
       <|> Ile
-    <$ parseByte 23
+    <$ getWord8Value 23
       <|> Ige
-    <$ parseByte 24
+    <$ getWord8Value 24
       <|> Feq
-    <$ parseByte 25
+    <$ getWord8Value 25
       <|> Fne
-    <$ parseByte 26
+    <$ getWord8Value 26
       <|> Flt
-    <$ parseByte 27
+    <$ getWord8Value 27
       <|> Fgt
-    <$ parseByte 28
+    <$ getWord8Value 28
       <|> Fle
-    <$ parseByte 29
+    <$ getWord8Value 29
       <|> Fge
-    <$ parseByte 30
+    <$ getWord8Value 30
       <|> Ift
-    <$ parseByte 31
+    <$ getWord8Value 31
       <|> Iff
-    <$ parseByte 32
+    <$ getWord8Value 32
       <|> Goto
-    <$ parseByte 33
+    <$ getWord8Value 33
       <|> Iand
-    <$ parseByte 34
+    <$ getWord8Value 34
       <|> Ior
-    <$ parseByte 35
+    <$ getWord8Value 35
       <|> Ixor
-    <$ parseByte 36
+    <$ getWord8Value 36
       <|> Invoke
-    <$ parseByte 37
+    <$ getWord8Value 37
       <|> Return
-    <$ parseByte 38
+    <$ getWord8Value 38
       <|> I2f
-    <$ parseByte 39
+    <$ getWord8Value 39
       <|> F2i
-    <$ parseByte 40
+    <$ getWord8Value 40
       <|> Pop
-    <$ parseByte 41
+    <$ getWord8Value 41
       <|> Dup
-    <$ parseByte 42
+    <$ getWord8Value 42
       <|> PopPrev
-    <$ parseByte 43
+    <$ getWord8Value 43
       <|> IloadStack
-    <$ parseByte 44
+    <$ getWord8Value 44
       <|> FloadStack
-    <$ parseByte 45
+    <$ getWord8Value 45
       <|> UloadStack
-    <$ parseByte 46
+    <$ getWord8Value 46
       <|> Not
-    <$ parseByte 47
+    <$ getWord8Value 47
       <|> Iconvert
-    <$ parseByte 48
+    <$ getWord8Value 48
       <|> Fconvert
-    <$ parseByte 49
+    <$ getWord8Value 49
       <|> Uconvert
-    <$ parseByte 50
+    <$ getWord8Value 50
 
-getIntegerFromBytes :: (Integral a) => [Char] -> a
-getIntegerFromBytes = foldl' (\acc x -> acc * 256 + fromIntegral (ord x)) 0
 
-getI8 :: String -> Int8
-getI8 = getIntegerFromBytes
+getVariableI :: Get Variable
+getVariableI = do
+  value <- getWord8
+  case value of
+    1 -> I8 <$> getInt8
+    2 -> I16 <$> getInt16be
+    4 -> I32 <$> getInt32be
+    8 -> I64 <$> getInt64be
+    _ -> fail "Invalid value"
 
-getI16 :: String -> Int16
-getI16 = getIntegerFromBytes
+getVariableF :: Get Variable
+getVariableF = do
+  value <- getWord8
+  case value of
+    4 -> F32 <$> getFloatbe
+    8 -> F64 <$> getDoublebe
+    _ -> fail "Invalid value"
 
-getI32 :: String -> Int32
-getI32 = getIntegerFromBytes
+getVariableU :: Get Variable
+getVariableU = do
+  value <- getWord8
+  case value of
+    1 -> U8 <$> getWord8
+    2 -> U16 <$> getWord16be
+    4 -> U32 <$> getWord32be
+    8 -> U64 <$> getWord64be
+    _ -> fail "Invalid value"
 
-getI64 :: String -> Int64
-getI64 = getIntegerFromBytes
-
-parserVariableI :: Parser Variable
-parserVariableI = Parser f
-  where
-    f :: String -> Maybe (Variable, String)
-    f (x : xs) = case ord x of
-      1 -> Just (I8 (getI8 (take 1 xs)), drop 1 xs)
-      2 -> Just (I16 (getI16 (take 2 xs)), drop 2 xs)
-      4 -> Just (I32 (getI32 (take 4 xs)), drop 4 xs)
-      8 -> Just (I64 (getI64 (take 8 xs)), drop 8 xs)
-      _ -> Nothing
-    f [] = Nothing
-
-parserVariableN :: Parser Variable
-parserVariableN = None <$ parseNothing
+getVariableN :: Get Variable
+getVariableN = return None
 
 lenOfVar :: Variable -> Int
 lenOfVar (I8 _) = 1
@@ -240,65 +243,86 @@ lenOfVar (U32 _) = 4
 lenOfVar (U64 _) = 8
 lenOfVar None = 0
 
-parserCouple :: Parser (Int, OpCode, Variable)
-parserCouple = Parser f
-  where
-    f :: String -> Maybe ((Int, OpCode, Variable), String)
-    f s = case runParser parserInstruction s of
-      Just (Funk, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Iload, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Fload, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Uload, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Istore, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Fstore, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Ustore, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Iconst, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Fconst, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Uconst, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Iadd, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fadd, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Isub, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fsub, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Imul, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fmul, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Idiv, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fdiv, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Irem, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ieq, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ine, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ilt, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Igt, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ile, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ige, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Feq, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fne, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Flt, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fgt, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fle, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Fge, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ift, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Iff, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Goto, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Iand, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ior, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Ixor, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Invoke, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Return, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (I2f, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (F2i, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Pop, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Dup, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (PopPrev, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (IloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (FloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (UloadStack, _) -> runParser (parseAndWith (\x y -> (lenOfVar y + 2, x, y)) parserInstruction parserVariableI) s
-      Just (Not, _) -> runParser (parseAndWith (\x y -> (1, x, y)) parserInstruction parserVariableN) s
-      Just (Iconvert, _) -> runParser (parseAndWith (\x y -> (3, x, y)) parserInstruction parserVariableI) s
-      Just (Fconvert, _) -> runParser (parseAndWith (\x y -> (3, x, y)) parserInstruction parserVariableI) s
-      Just (Uconvert, _) -> runParser (parseAndWith (\x y -> (3, x, y)) parserInstruction parserVariableI) s
-      Nothing -> Nothing
+getAndWith :: (a -> b -> c) -> Get a -> Get b -> Get c
+getAndWith p0 p1 p2 = do
+  a <- p1
+  p0 a <$> p2
 
-vmToken :: String -> Maybe [Instruction]
-vmToken s = case runParser (parseMany parserCouple) s of
-  Just (t, "") -> Just t
-  _ -> Nothing
+getMany :: Get a -> Get [a]
+getMany p = do
+  mt <- isEmpty
+  if mt
+    then return []
+    else do
+      x <- p
+      (x :) <$> getMany p
+
+getN :: Get ()
+getN = return ()
+
+
+getCouple :: Get (Int, OpCode, Variable)
+getCouple = do
+  opCode <- getInstruction
+  case opCode of
+    Funk -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Iload -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Fload -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Uload -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Istore -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Fstore -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Ustore -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Iconst -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Fconst -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableF
+    Uconst -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableU
+    Iadd -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fadd -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Isub -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fsub -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Imul -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fmul -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Idiv -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fdiv -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Irem -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ieq -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ine -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ilt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Igt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ile -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ige -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Feq -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fne -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Flt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fgt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fle -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Fge -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ift -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Iff -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Goto -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Iand -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ior -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Ixor -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Invoke -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Return -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    I2f -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    F2i -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Pop -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Dup -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    PopPrev -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    IloadStack -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    FloadStack -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    UloadStack -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Not -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Iconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
+    Fconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
+    Uconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
+
+vmToken :: BL.ByteString -> Maybe [Instruction]
+vmToken s = case runGetOrFail (getMany getCouple) s of
+  Left _ -> Nothing
+  Right (_, _, x) -> Just x
+
+-- vmToken :: BL.ByteString -> Maybe [Instruction]
+-- vmToken s = case runParserBL (parseMany parserBLCouple) s of
+--   Just (t, "") -> Just t
+--   _ -> Nothing
