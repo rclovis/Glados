@@ -295,6 +295,17 @@ getDefine (Define name _ (Lambda args body)) = MemoryState $ do
   funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
   runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (fromIntegral funkSize)))
 
+getDefine (Define name t ast) = MemoryState $ do
+  runMemoryState (getAll ast)
+  runMemoryState (memoryPushVar name t)
+  stock <- get
+  if isInt t then
+    put stock {bytecode = bytecode stock |> Istore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
+  else if isUnsigned t then
+    put stock {bytecode = bytecode stock |> Ustore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
+  else
+    put stock {bytecode = bytecode stock |> Fstore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
+
 getDefine _ = return ()
 
 getAssign :: Ast -> MemoryState ()
