@@ -171,21 +171,24 @@ operationPushStack x = Operation $ do
   cpu <- get
   put cpu {cpuStack = x <| cpuStack cpu}
 
+
+operationPushVar :: Variable -> Operation ()
+operationPushVar x = Operation $ do
+  cpu <- get
+  case cpuVar cpu of
+    (cpuVarTop :<| xs) -> do
+      put cpu {cpuVar = (x :<| cpuVarTop) <| xs}
+    _ -> return ()
+
 operationSetVar :: Int -> Variable -> Operation ()
 operationSetVar x y = Operation $ do
   cpu <- get
   case cpuVar cpu of
     (cpuVarTop :<| xs) -> do
-      put cpu {cpuVar = S.update x y cpuVarTop <| xs}
+      if S.length cpuVarTop > x
+        then put cpu {cpuVar = S.update x y cpuVarTop <| xs}
+        else runOperation (operationPushVar y)
     _ -> return ()
-
-operationGetVar :: Int -> Operation Variable
-operationGetVar x = Operation $ do
-  cpu <- get
-  case cpuVar cpu of
-    (cpuVarTop :<| _) -> do
-      return $ cpuVarTop `S.index` x
-    _ -> return None
 
 operationLoadVar :: Int -> Operation ()
 operationLoadVar x = Operation $ do
@@ -274,13 +277,13 @@ exec (_, Fadd, _) _ = do
   operationPushStack (addF a b)
 exec (_, Isub, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (subI a b)
 exec (_, Fsub, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (subF a b)
 exec (_, Imul, _) _ = do
   operationAddIp
@@ -294,18 +297,18 @@ exec (_, Fmul, _) _ = do
   operationPushStack (mulF a b)
 exec (_, Idiv, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (divI a b)
 exec (_, Fdiv, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (divF a b)
 exec (_, Irem, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (modI a b)
 exec (_, Ieq, _) _ = do
   operationAddIp
@@ -329,43 +332,43 @@ exec (_, Fne, _) _ = do
   operationPushStack (neF a b)
 exec (_, Ilt, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (ltI a b)
 exec (_, Flt, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (ltF a b)
 exec (_, Igt, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (gtI a b)
 exec (_, Fgt, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (gtF a b)
 exec (_, Ile, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (leI a b)
 exec (_, Fle, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (leF a b)
 exec (_, Ige, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (geI a b)
 exec (_, Fge, _) _ = do
   operationAddIp
-  b <- operationPopStack
   a <- operationPopStack
+  b <- operationPopStack
   operationPushStack (geF a b)
 exec (_, Ift, v) i = do
   a <- operationPopStack
@@ -442,6 +445,7 @@ execOp :: [Instruction] -> Operation ()
 execOp i = do
   cpu <- Operation get
   if ip cpu >= Prelude.length i
+  -- if loop cpu == 14
     then return ()
     else do
       exec (i !! ip cpu) i

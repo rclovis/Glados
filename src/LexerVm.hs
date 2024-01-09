@@ -70,10 +70,6 @@ data OpCode
   | IloadStack
   | FloadStack
   | UloadStack
-  --   pop`                                    | True          |
-  -- \| 0x2A          | `dup`                                    | True          |
-  -- \| 0x2C          | `popPrev`                                | True          |
-  -- \| 0x2D ... 0x2F | `iloadStack`, `floadStack`, `uloadStack`
   deriving (Show, Eq, Enum)
 
 data Variable

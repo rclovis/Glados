@@ -1,40 +1,8 @@
-Funk 4 56
-    IloadStack 2 (Int16Val 0)
-    Istore 2 (Int16Val 0)
-    Iload 2 (Int16Val 0)
-    Iconst 1 (Int8Val 0)
-    Ieq
-    Ift 2 (Int16Val 8)
-    Goto 2 (Int16Val 8)
-    Iconst 1 (Int8Val 1)
-    Return
-    Iload 2 (Int16Val 0)
-    Iload 2 (Int16Val 0)
-    Iconst 1 (Int8Val 1)
-    Isub
-    Invoke 2 (Int16Val 0)
-    PopPrev 2 (Int16Val 1)
-    Imul
-    Return
-    Iconst 1 (Int8Val 5)
-    Invoke 2 (Int16Val 0)
-    PopPrev 2 (Int16Val 1)
+funk factorial(n: i64): i64 {
+  if (n == 0) {
+    return 1;
+  }
+  return n * factorial(n - 1);
+}
 
-Funk 56
-  IloadStack 0
-  Iconst Int64Val 0
-  Ieq
-  Iff Int8Val 14
-  Iconst Int64Val 1
-  Return
-  IloadStack 0
-  IloadStack 0
-  Iconst Int64Val 1
-  Isub
-  Invoke Int8Val 0
-  PopPrev 1
-  Imul
-  Return
-  Iconst Int64Val 5
-  Invoke Int8Val 0
-  PopPrev 1
+factorial(5);

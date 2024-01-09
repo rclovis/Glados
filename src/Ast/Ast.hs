@@ -2,6 +2,7 @@
 
 module Ast.Ast
   ( Ast (..),
+    Arg,
     genAst,
   )
 where
@@ -172,15 +173,15 @@ getWhile :: [Expr] -> Maybe (Ast, [Expr])
 getWhile (A Lexer.While : Parenthesis cond : Braces body : xs) = do
   (cond', []) <- getAst cond
   (body', []) <- getAst body
-  pure (While cond' body', xs)
+  pure (Ast.Ast.While cond' body', xs)
 getWhile _ = Nothing
 
 getBreak :: [Expr] -> Maybe (Ast, [Expr])
-getBreak (A Lexer.Break : xs) = pure (Break, xs)
+getBreak (A Lexer.Break : xs) = pure (Ast.Ast.Break, xs)
 getBreak _ = Nothing
 
 getContinue :: [Expr] -> Maybe (Ast, [Expr])
-getContinue (A Lexer.Continue : xs) = pure (Continue, xs)
+getContinue (A Lexer.Continue : xs) = pure (Ast.Ast.Continue, xs)
 getContinue _ = Nothing
 
 getDefine :: [Expr] -> Maybe (Ast, [Expr])

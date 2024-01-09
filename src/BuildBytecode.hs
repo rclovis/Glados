@@ -1,23 +1,26 @@
 {-# LANGUAGE InstanceSigs #-}
 
-module BuildBytecode (mainBytecodeTest) where
+module BuildBytecode (astToBytecode) where
 
 import Bytecode (Bytecode (..), FloatingPoint (..), IntTypes (..), WordTypes (..), getSizeBytecode)
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
 import Data.Sequence as S
 import LexerVm (Variable (..), OpCode (Invoke))
+import Ast.Ast (Ast (..), Arg)
+import Ast.Op (Op (..))
+import Ast.Types (Type (..))
 import Data.Int
 import Data.Word
 import Data.Bits
 import Data.Map as M
 
 -- to remove : le One's AST -> import AST
-data Op = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Le | Ge | And | Or | Not
-  deriving (Eq, Ord, Show)
+-- data Op = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Le | Ge | And | Or | Not
+--   deriving (Eq, Ord, Show)
 
-data Type = Ti8 | Ti16 | Ti32 | Ti64 | Tu8 | Tu16 | Tu32 | Tu64 | Tf32 | Tf64 | Tnull
-  deriving (Eq, Ord, Show)
+-- data Type = Ti8 | Ti16 | Ti32 | Ti64 | Tu8 | Tu16 | Tu32 | Tu64 | Tf32 | Tf64 | Tnull
+--   deriving (Eq, Ord, Show)
 
 correspondingInt :: Int -> Integer -> IntTypes
 correspondingInt 1 x = Int8Val (fromIntegral x)
@@ -71,26 +74,26 @@ isUnsigned Tu32 = True
 isUnsigned Tu64 = True
 isUnsigned _ = False
 
-type Arg = (String, Type)
+-- type Arg = (String, Type)
 
-data Ast
-  = Seq [Ast]
-  | Define String Type Ast
-  | Assign String Ast
-  | Lambda [Arg] Ast
-  | Call String [Ast]
-  | Return Ast
-  | If Ast Ast Ast
-  | While Ast Ast
-  | Break
-  | Continue
-  | Id String
-  | Value Ast
-  | BinOp Op Ast Ast
-  | UnOp Op Ast
-  | Int Int
-  | Float Float
-  deriving (Eq, Ord, Show)
+-- data Ast
+--   = Seq [Ast]
+--   | Define String Type Ast
+--   | Assign String Ast
+--   | Lambda [Arg] Ast
+--   | Call String [Ast]
+--   | Return Ast
+--   | If Ast Ast Ast
+--   | While Ast Ast
+--   | Break
+--   | Continue
+--   | Id String
+--   | Value Ast
+--   | BinOp Op Ast Ast
+--   | UnOp Op Ast
+--   | Int Int
+--   | Float Float
+--   deriving (Eq, Ord, Show)
 
 -- end to remove
 
@@ -152,26 +155,26 @@ instance Monad MemoryState where
     put stock''
     return y
 
-testAst :: Ast
-testAst =
-  Seq [
-    Define
-      "factorial"
-      Ti64
-      (Lambda
-        [("n", Ti32)]
-        (Seq [
-          If
-            (BinOp Eq (Id "n") (Int 0))
-            (BuildBytecode.Return (Int 1))
-            (Seq [])
-          ,
-          BuildBytecode.Return (BinOp Mul (Id "n") (Call "factorial" [BinOp Sub (Id "n") (Int 1)]))
-        ])
-      )
-    ,
-    Call "factorial" [Int 5]
-  ]
+-- testAst :: Ast
+-- testAst =
+--   Seq [
+--     Define
+--       "factorial"
+--       Ti64
+--       (Lambda
+--         [("n", Ti32)]
+--         (Seq [
+--           If
+--             (BinOp Eq (Id "n") (Int 0))
+--             (Ast.Ast.Return (Int 1))
+--             (Seq [])
+--           ,
+--           Ast.Ast.Return (BinOp Mul (Id "n") (Call "factorial" [BinOp Sub (Id "n") (Int 1)]))
+--         ])
+--       )
+--     ,
+--     Call "factorial" [Int 5]
+--   ]
 
 argToSeq :: [Arg] -> S.Seq (String, Type)
 argToSeq [] = S.empty
@@ -288,12 +291,12 @@ getDefine :: Ast -> MemoryState ()
 getDefine (Define name _ (Lambda args body)) = MemoryState $ do
   runMemoryState (memoryAddFunk name (argToSeq args))
   stock1 <- get
-  put stock1 {bytecode = bytecode stock1 |> Funk 4 0}
+  put stock1 {bytecode = bytecode stock1 |> Funk 4 (correspondingInt 4 0)}
   i <- gets (S.length . bytecode)
   runMemoryState (getFunk (argToSeq args) body)
   stock2 <- get
   funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
-  runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (fromIntegral funkSize)))
+  runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (correspondingInt 4 (toInteger funkSize))))
 
 getDefine (Define name t ast) = MemoryState $ do
   runMemoryState (getAll ast)
@@ -367,7 +370,7 @@ getUnOp (UnOp op ast) = MemoryState $ do
   runMemoryState (getAll ast)
   stock <- get
   case op of
-    BuildBytecode.Not -> put stock {bytecode = bytecode stock |> Bytecode.Not}
+    Ast.Op.Not -> put stock {bytecode = bytecode stock |> Bytecode.Not}
     _ -> error "not supported Unary Operator"
   
 getUnOp _ = return ()
@@ -390,7 +393,7 @@ getBinOp (BinOp op ast1 ast2) = MemoryState $ do
     Gt -> put stock {bytecode = bytecode stock |> Igt}
     Le -> put stock {bytecode = bytecode stock |> Ile}
     Ge -> put stock {bytecode = bytecode stock |> Ige}
-    BuildBytecode.And -> put stock {bytecode = bytecode stock |> Iand}
+    Ast.Op.And -> put stock {bytecode = bytecode stock |> Iand}
     Or -> put stock {bytecode = bytecode stock |> Bytecode.Ior}
     -- Not -> put stock {bytecode = bytecode stock |> Inot}
     _ -> error "not supported Binary Operator"
@@ -404,7 +407,7 @@ getId _ = return ()
 
 
 getReturn :: Ast -> MemoryState ()
-getReturn (BuildBytecode.Return ast) = MemoryState $ do
+getReturn (Ast.Ast.Return ast) = MemoryState $ do
   runMemoryState (getAll ast)
   stock <- get
   put stock {bytecode = bytecode stock |> Bytecode.Return}
@@ -438,13 +441,22 @@ getAll (Define name type_ (Lambda args body)) = MemoryState $ do
 getAll (Id name) = MemoryState $ do
   runMemoryState (getId (Id name))
 
-getAll (BuildBytecode.Return ast) = MemoryState $ do
-  runMemoryState (getReturn (BuildBytecode.Return ast))
+getAll (Ast.Ast.Return ast) = MemoryState $ do
+  runMemoryState (getReturn (Ast.Ast.Return ast))
 
 
 getAll _ = return ()
 
-mainBytecodeTest :: IO ()
-mainBytecodeTest = do
-  let stock = execState (runMemoryState (getAll testAst)) emptyMemory
-  print stock
+bcSecToList :: S.Seq Bytecode -> [Bytecode]
+bcSecToList S.Empty = []
+bcSecToList (x :<| xs) = x : bcSecToList xs
+
+astToBytecode :: Ast -> [Bytecode]
+astToBytecode ast = do
+  let stock = execState (runMemoryState (getAll ast)) emptyMemory
+  bcSecToList (bytecode stock)
+
+-- astToBytecodeT :: Ast -> IO ()
+-- astToBytecodeT ast = do
+--   let stock = execState (runMemoryState (getAll ast)) emptyMemory
+--   print stock

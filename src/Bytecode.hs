@@ -26,7 +26,7 @@ data FloatingPoint
   deriving (Show, Eq)
 
 data Bytecode
-  = Funk Word8 Word8 -- function with int size of arg and int size of body
+  = Funk Word8 IntTypes -- function with int size of arg and int size of body
   | Iload Word8 IntTypes -- load int from stack
   | Fload Word8 IntTypes -- load float from stack
   | Uload Word8 IntTypes -- load uint from stack
@@ -217,7 +217,7 @@ getBin :: [Bytecode] -> B.ByteString
 getBin = B.pack . concatMap toBin
 
 toBin :: Bytecode -> [Word8]
-toBin (Funk a b) = [0, a, b]
+toBin (Funk a b) = [0, a] ++ intTypesTo8bit b
 toBin (Iload a b) = [1, a] ++ intTypesTo8bit b
 toBin (Fload a b) = [2, a] ++ intTypesTo8bit b
 toBin (Uload a b) = [3, a] ++ intTypesTo8bit b
@@ -319,7 +319,7 @@ toHumanReadable (UloadStack _ b) = "  UloadStack " ++ show b ++ "\n"
 
 bytecode :: [Bytecode]
 bytecode =
-  [ Funk 1 56,
+  [ Funk 1 (Int64Val 56),
     IloadStack 1 (Int64Val 0),
     Iconst 8 (Int64Val 0),
     Ieq,

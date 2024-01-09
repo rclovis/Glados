@@ -8,7 +8,7 @@ import System.Environment (getArgs)
 import Data.Char (chr)
 
 import Bytecode (getBin, bytecode, getHumanReadable)
-import BuildBytecode (mainBytecodeTest)
+import BuildBytecode (astToBytecode)
 
 import qualified Data.ByteString as B
 
@@ -20,4 +20,14 @@ main = do
         tokens <- tokenize file
         expr <- genExpr tokens
         genAst expr
-  print ast
+  putStrLn "AST--------------------------------------"
+  putStrLn (show ast)
+  putStrLn "-----------------------------------------"
+  case ast of
+    Nothing -> putStrLn "Error"
+    Just ast -> do
+      let bc = astToBytecode ast
+      B.writeFile "out.bin" (getBin bc)
+      putStrLn "BYTECODE---------------------------------"
+      putStrLn (getHumanReadable bc)
+      putStrLn "-----------------------------------------"
