@@ -385,6 +385,19 @@ getBinOp (BinOp op ast1 ast2) = MemoryState $ do
     _ -> error "not supported Binary Operator"
 getBinOp _ = return ()
 
+getWhile :: Ast -> MemoryState ()
+getWhile (While cond body) = MemoryState $ do
+  stock <- get
+  let save1 = S.length (bytecode stock)
+  runMemoryState (getAll body)
+  runMemoryState (getAll cond)
+  stock2 <- get
+  sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode - 4)))}
+
+getWhile _ = return ()
+
+
 getId :: Ast -> MemoryState ()
 getId (Id name) = MemoryState $ do
   stock <- get
@@ -430,6 +443,8 @@ getAll (Id name) = MemoryState $ do
 getAll (BuildBytecode.Return ast) = MemoryState $ do
   runMemoryState (getReturn (BuildBytecode.Return ast))
 
+getAll (While cond body) = MemoryState $ do
+  runMemoryState (getWhile (While cond body))
 
 getAll _ = return ()
 
