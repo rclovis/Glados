@@ -15,13 +15,6 @@ import Data.Word
 import Data.Bits
 import Data.Map as M
 
--- to remove : le One's AST -> import AST
--- data Op = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Le | Ge | And | Or | Not
---   deriving (Eq, Ord, Show)
-
--- data Type = Ti8 | Ti16 | Ti32 | Ti64 | Tu8 | Tu16 | Tu32 | Tu64 | Tf32 | Tf64 | Tnull
---   deriving (Eq, Ord, Show)
-
 correspondingInt :: Int -> Integer -> IntTypes
 correspondingInt 1 x = Int8Val (fromIntegral x)
 correspondingInt 2 x = Int16Val (fromIntegral x)
@@ -43,6 +36,15 @@ correspondingFloat _ _ = error "zbi"
 
 minimumSizeI :: Int -> Int
 minimumSizeI x
+  | xabs < 128 = 1
+  | xabs < 32768 = 2
+  | xabs < 2147483648 = 4
+  | otherwise = 8
+  where
+    xabs = abs x
+
+minimumSizeU :: Int -> Int
+minimumSizeU x
   | x < 0 = error "zbi"
   | x < 256 = 1
   | x < 65536 = 2
@@ -50,10 +52,7 @@ minimumSizeI x
   | otherwise = 8
 
 minimumSizeF :: Rational -> Int
-minimumSizeF x
-  | x < 0 = error "zbi"
-  | x < 3.402823466e+38 = 4
-  | otherwise = 8
+minimumSizeF _ = 8
 
 isFloat :: Type -> Bool
 isFloat Tf32 = True
@@ -74,29 +73,6 @@ isUnsigned Tu32 = True
 isUnsigned Tu64 = True
 isUnsigned _ = False
 
--- type Arg = (String, Type)
-
--- data Ast
---   = Seq [Ast]
---   | Define String Type Ast
---   | Assign String Ast
---   | Lambda [Arg] Ast
---   | Call String [Ast]
---   | Return Ast
---   | If Ast Ast Ast
---   | While Ast Ast
---   | Break
---   | Continue
---   | Id String
---   | Value Ast
---   | BinOp Op Ast Ast
---   | UnOp Op Ast
---   | Int Int
---   | Float Float
---   deriving (Eq, Ord, Show)
-
--- end to remove
-
 data Memory = Memory
   { memVar :: S.Seq (S.Seq (String, Type)),
     memFunk :: S.Seq (String, S.Seq (String, Type)),
@@ -105,7 +81,7 @@ data Memory = Memory
   deriving (Show, Eq)
 
 emptyMemory :: Memory
-emptyMemory = Memory {memVar = S.empty, memFunk = S.empty, bytecode = S.empty}
+emptyMemory = Memory {memVar = S.singleton S.empty, memFunk = S.empty, bytecode = S.empty}
 
 newtype MemoryState a = MemoryState
   { runMemoryState :: State Memory a
@@ -155,27 +131,6 @@ instance Monad MemoryState where
     put stock''
     return y
 
--- testAst :: Ast
--- testAst =
---   Seq [
---     Define
---       "factorial"
---       Ti64
---       (Lambda
---         [("n", Ti32)]
---         (Seq [
---           If
---             (BinOp Eq (Id "n") (Int 0))
---             (Ast.Ast.Return (Int 1))
---             (Seq [])
---           ,
---           Ast.Ast.Return (BinOp Mul (Id "n") (Call "factorial" [BinOp Sub (Id "n") (Int 1)]))
---         ])
---       )
---     ,
---     Call "factorial" [Int 5]
---   ]
-
 argToSeq :: [Arg] -> S.Seq (String, Type)
 argToSeq [] = S.empty
 argToSeq ((name, type_) : xs) = (name, type_) <| argToSeq xs
@@ -205,6 +160,14 @@ memoryGetVarIndex name ((nameVar, _) :<| xs) =
     0
   else
     1 + memoryGetVarIndex name xs
+
+memoryGetVar :: String -> Seq (String, Type) -> MemoryState (String, Type)
+memoryGetVar _ S.Empty = error "Empty"
+memoryGetVar name ((nameVar, type_) :<| xs) =
+  if name == nameVar then
+    return (nameVar, type_)
+  else
+    memoryGetVar name xs
 
 memoryPushVarScope :: MemoryState ()
 memoryPushVarScope = MemoryState $ do
@@ -286,6 +249,20 @@ memoryAddFunk name args = MemoryState $ do
   stock <- get
   put stock {memFunk = memFunk stock |> (name, args)}
 
+getConvert :: Type -> MemoryState ()
+getConvert t = MemoryState $ do
+  stock <- get
+  case t of
+    Ti8 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 1}
+    Ti16 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 2}
+    Ti32 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 4}
+    Ti64 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 8}
+    Tu8 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 1}
+    Tu16 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 2}
+    Tu32 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 4}
+    Tu64 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 8}
+    Tf32 -> put stock {bytecode = bytecode stock |> Bytecode.Fconvert 1 4}
+    Tf64 -> put stock {bytecode = bytecode stock |> Bytecode.Fconvert 1 8}
 
 getDefine :: Ast -> MemoryState ()
 getDefine (Define name _ (Lambda args body)) = MemoryState $ do
@@ -299,9 +276,11 @@ getDefine (Define name _ (Lambda args body)) = MemoryState $ do
   runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (correspondingInt 4 (toInteger funkSize))))
 
 getDefine (Define name t ast) = MemoryState $ do
-  runMemoryState (getAll ast)
   runMemoryState (memoryPushVar name t)
+  runMemoryState (getAll ast)
+  runMemoryState (getConvert t)
   stock <- get
+
   if isInt t then
     put stock {bytecode = bytecode stock |> Istore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
   else if isUnsigned t then
@@ -312,6 +291,19 @@ getDefine (Define name t ast) = MemoryState $ do
 getDefine _ = return ()
 
 getAssign :: Ast -> MemoryState ()
+getAssign (Assign name ast) = MemoryState $ do
+  runMemoryState (getAll ast)
+  stock1 <- get
+  var <- runMemoryState (memoryGetVar name (index (memVar stock1) 0))
+  runMemoryState (getConvert (snd var))
+  stock2 <- get
+  if isInt (snd var) then
+    put stock2 {bytecode = bytecode stock2 |> Istore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock2) 0))))}
+  else if isUnsigned (snd var) then
+    put stock2 {bytecode = bytecode stock2 |> Ustore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock2) 0))))}
+  else
+    put stock2 {bytecode = bytecode stock2 |> Fstore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock2) 0))))}
+
 getAssign _ = MemoryState $ do
   stock <- get
   put stock {bytecode = bytecode stock}
@@ -327,18 +319,7 @@ pushArgs :: [Ast] -> Seq (String, Type) -> MemoryState ()
 pushArgs [] _ = return ()
 pushArgs (x:xs) ((_, t) :<| ys) = MemoryState $ do
   runMemoryState (getAll x)
-  stock <- get
-  case t of
-    Ti8 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 1}
-    Ti16 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 2}
-    Ti32 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 4}
-    Ti64 -> put stock {bytecode = bytecode stock |> Bytecode.Iconvert 1 8}
-    Tu8 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 1}
-    Tu16 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 2}
-    Tu32 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 4}
-    Tu64 -> put stock {bytecode = bytecode stock |> Bytecode.Uconvert 1 8}
-    Tf32 -> put stock {bytecode = bytecode stock |> Bytecode.Fconvert 1 4}
-    Tf64 -> put stock {bytecode = bytecode stock |> Bytecode.Fconvert 1 8}
+  runMemoryState (getConvert t)
   runMemoryState (pushArgs xs ys)
 pushArgs _ _ = return ()
 
@@ -392,7 +373,6 @@ getUnOp (UnOp op ast) = MemoryState $ do
   case op of
     Ast.Op.Not -> put stock {bytecode = bytecode stock |> Bytecode.Not}
     _ -> error "not supported Unary Operator"
-  
 getUnOp _ = return ()
 
 
@@ -427,7 +407,23 @@ getWhile (While cond body) = MemoryState $ do
   runMemoryState (getAll cond)
   stock2 <- get
   sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
-  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode - 4)))}
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode - 4)))}
+
+
+
+--   i <- gets (S.length . bytecode)
+--   runMemoryState (getAll body)
+--   runMemoryState (getAll cond)
+
+
+-- runMemoryState (memoryAddFunk name (argToSeq args))
+--   stock1 <- get
+--   put stock1 {bytecode = bytecode stock1 |> Funk 4 (correspondingInt 4 0)}
+--   i <- gets (S.length . bytecode)
+--   runMemoryState (getFunk (argToSeq args) body)
+--   stock2 <- get
+--   funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
+--   runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (correspondingInt 4 (toInteger funkSize))))
 
 getWhile _ = return ()
 
@@ -450,8 +446,8 @@ getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
 
-getAll (Assign name (Lambda args body)) = MemoryState $ do
-  runMemoryState (getAssign (Assign name (Lambda args body)))
+getAll (Assign name ast) = MemoryState $ do
+  runMemoryState (getAssign (Assign name ast))
 
 getAll (Call name args) = MemoryState $ do
   runMemoryState (getCall (Call name args))
@@ -468,8 +464,8 @@ getAll (BinOp op ast1 ast2) = MemoryState $ do
 getAll (If cond body1 body2) = MemoryState $ do
   runMemoryState (getIf (If cond body1 body2))
 
-getAll (Define name type_ (Lambda args body)) = MemoryState $ do
-  runMemoryState (getDefine (Define name type_ (Lambda args body)))
+getAll (Define name type_ ast) = MemoryState $ do
+  runMemoryState (getDefine (Define name type_ ast))
 
 getAll (Id name) = MemoryState $ do
   runMemoryState (getId (Id name))
