@@ -476,6 +476,9 @@ getAll (Ast.Ast.Return ast) = MemoryState $ do
 getAll (While cond body) = MemoryState $ do
   runMemoryState (getWhile (While cond body))
 
+getAll (UnOp op ast) = MemoryState $ do
+  runMemoryState (getUnOp (UnOp op ast))
+
 getAll _ = return ()
 
 bcSecToList :: S.Seq Bytecode -> [Bytecode]
