@@ -213,8 +213,12 @@ getSign f
 padZeros :: Int -> [Char] -> [Char]
 padZeros len str = replicate (max 0 (len - length str)) '0' ++ str
 
+-- Funk + 32 0x00
+header :: B.ByteString
+header = B.pack [0x46, 0x55, 0x4E, 0x4B] `B.append` foldr B.cons B.empty (replicate 63 0x00)
+
 getBin :: [Bytecode] -> B.ByteString
-getBin = B.pack . concatMap toBin
+getBin xs = header `B.append` foldr B.cons B.empty (concatMap toBin xs)
 
 toBin :: Bytecode -> [Word8]
 toBin (Funk a b) = [0, a] ++ intTypesTo8bit b
