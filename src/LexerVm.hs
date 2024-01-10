@@ -68,6 +68,8 @@ data OpCode
   | Iconvert
   | Fconvert
   | Uconvert
+  | Addr
+  | Access
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -260,6 +262,15 @@ getMany p = do
 getN :: Get ()
 getN = return ()
 
+getHeader :: Get ()
+getHeader = do
+  a <- getWord32be
+  if a /= 0x46554e4b
+    then fail "Invalid header"
+    else do
+      _ <- getByteString 64
+      return ()
+
 
 getCouple :: Get (Int, OpCode, Variable)
 getCouple = do
@@ -316,13 +327,12 @@ getCouple = do
     Iconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
     Fconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
     Uconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
+    Addr -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Access -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+
+
 
 vmToken :: BL.ByteString -> Maybe [Instruction]
-vmToken s = case runGetOrFail (getMany getCouple) s of
+vmToken s = case runGetOrFail (getAndWith (\_ y -> y) getHeader (getMany getCouple)) s of
   Left _ -> Nothing
   Right (_, _, x) -> Just x
-
--- vmToken :: BL.ByteString -> Maybe [Instruction]
--- vmToken s = case runParserBL (parseMany parserBLCouple) s of
---   Just (t, "") -> Just t
---   _ -> Nothing

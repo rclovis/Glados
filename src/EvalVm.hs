@@ -186,7 +186,7 @@ operationSetVar x y = Operation $ do
   case cpuVar cpu of
     (cpuVarTop :<| xs) -> do
       if S.length cpuVarTop > x
-        then put cpu {cpuVar = S.update x y cpuVarTop <| xs}
+        then put cpu {cpuVar = S.update (x - (S.length cpuVarTop - 1)) y cpuVarTop <| xs}
         else runOperation (operationPushVar y)
     _ -> return ()
 
@@ -199,10 +199,17 @@ operationLoadVar x = Operation $ do
       runOperation (operationPushStack i)
     _ -> return ()
 
+-- operationAddr :: Variable -> Operation ()
+-- operationAddr x = Operation $ do
+--   cpu <- get
+--   case cpuVar cpu of
+--     (cpuVarTop :<| _) -> do
+--       runOperation (operationPushStack x)
+--     _ -> return ()
 operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
   pop <- runOperation operationPopStack
-  runOperation $ operationSetVar x pop
+  runOperation (operationSetVar x pop)
 
 operationRepeatOp :: Int -> Operation () -> Operation ()
 operationRepeatOp 0 _ = return ()
@@ -218,7 +225,7 @@ operationJump x i = Operation $ do
     then do
       let (l, _, _) = i !! ip cpu
       put cpu {ip = ip cpu - 1}
-      runOperation $ operationJump (fromIntegral x - l) i
+      runOperation $ operationJump (fromIntegral x + l) i
     else do
       let (l, _, _) = i !! ip cpu
       put cpu {ip = ip cpu + 1}
@@ -402,7 +409,7 @@ exec (_, Invoke, v) _ = do
   operationPushStack (I64 (fromIntegral (fp cpu)))
   operationPushStack (I64 (fromIntegral (ip cpu + 1)))
   operationSetFp (S.length (cpuStack cpu) - 1)
-  operationSetIp (cpuFunk cpu `S.index` getIntegral v)
+  operationSetIp (S.index (cpuFunk cpu) (S.length (cpuFunk cpu) - 1 - getIntegral v))
   operationAddIp
   operationPushVariableScope
 exec (_, Return, _) _ = do
@@ -463,6 +470,10 @@ exec (_, Uconvert, v) _ = do
     4 -> operationPushStack (U32 (getIntegral a))
     8 -> operationPushStack (U64 (getIntegral a))
     _ -> operationPushStack (U64 (getIntegral a))
+exec (_, Addr, v) _ = do
+  operationAddIp
+
+
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
@@ -471,7 +482,7 @@ execOp :: [Instruction] -> Operation ()
 execOp i = do
   cpu <- Operation get
   if ip cpu >= Prelude.length i
-  -- if loop cpu == 8
+  -- if loop cpu == 17
     then return ()
     else do
       exec (i !! ip cpu) i

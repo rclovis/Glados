@@ -1,4 +1,4 @@
-funk factorial (n: i32): i32 {
+funk factorial1 (n: i32): i32 {
     var result: i32 = 1;
     while (n > 1) {
         result = result * n;
@@ -6,4 +6,12 @@ funk factorial (n: i32): i32 {
     }
     return result;
 }
-factorial(5);
+
+
+funk factorial2 (n: i64): i64 {
+    if (n == 0) {
+        return 1;
+    }
+    return n * factorial2(n - 1);
+}
+factorial2(5);

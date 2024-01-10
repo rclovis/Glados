@@ -32,18 +32,18 @@
 6   (4,Iload,I16 1)
 7   (4,Iload,I16 0)
 8   (1,Imul,None)
-9   (3,Iconvert,I8 8)
+9   (3,Iconvert,I8 4)
 10  (4,Istore,I16 1)
 11  (4,Iload,I16 0)
 12  (3,Iconst,I8 1)
 13  (1,Isub,None)
-14  (3,Iconvert,I8 8)
+14  (3,Iconvert,I8 4)
 15  (4,Istore,I16 0)
 
 16  (4,Iload,I16 0)
 17  (3,Iconst,I8 1)
 18  (1,Igt,None)
-19  (4,Ift,I16 35)
+19  (4,Ift,I16 -43)
 20  (4,Iload,I16 1)
 21  (1,Return,None)
 
@@ -53,3 +53,7 @@
 25  (4,PopPrev,I16 1)
 
 
+Just (Seq [Define "factorial" Ti32 (Lambda [("n",Ti32)] (Seq [Define "result" Ti32 (Int 1),Seq [While (BinOp Gt (Id "n") (Int 1)) (Seq [Assign "result" (BinOp Mul (Id "result") (Id "n")),Assign "n" (BinOp Sub (Id "n") (Int 1))]),Return (Id "result")]])),Call "factorial" [Int 5]])
+
+
+Just (Seq [Define "factorial" Ti64 (Lambda [("n",Ti64)] (Seq [If (BinOp Eq (Id "n") (Int 0)) (Return (Int 1)) (Seq []),Call "return" [BinOp Mul (Call "factorial" [BinOp Sub (Int 1) (Id "n")]) (Id "n")]])),Call "factorial" [Int 5]])
