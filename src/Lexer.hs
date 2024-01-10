@@ -74,6 +74,7 @@ data Token
   | Else
   | While
   | Break
+  | Comma
   | End
   | Funk
   | Operator OperatorParsed
@@ -168,6 +169,9 @@ parseWhile = fmap (const While) (parseString "while")
 parseBreak :: Parser Token
 parseBreak = fmap (const Break) (parseString "break")
 
+parseComma :: Parser Token
+parseComma = fmap (const Comma) (parseChar ',')
+
 parseContinue :: Parser Token
 parseContinue = fmap (const Continue) (parseString "continue")
 
@@ -199,7 +203,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseEnd <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseContinue <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parsefNumber <|> parseiNumber <|> parseOperator <|> parseBoolean  <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseEnd <|> parseComma <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseContinue <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parsefNumber <|> parseiNumber <|> parseOperator <|> parseBoolean  <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
