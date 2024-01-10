@@ -2,6 +2,7 @@
 *~
 *.rkt
 *.fk
+*.bin
 glados.cabal
 dist-newstyle/
 factorial.csm
