@@ -409,22 +409,6 @@ getWhile (While cond body) = MemoryState $ do
   sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
   put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode - 4)))}
 
-
-
---   i <- gets (S.length . bytecode)
---   runMemoryState (getAll body)
---   runMemoryState (getAll cond)
-
-
--- runMemoryState (memoryAddFunk name (argToSeq args))
---   stock1 <- get
---   put stock1 {bytecode = bytecode stock1 |> Funk 4 (correspondingInt 4 0)}
---   i <- gets (S.length . bytecode)
---   runMemoryState (getFunk (argToSeq args) body)
---   stock2 <- get
---   funkSize <- runMemoryState (memoryGetSizeLastBytecode (S.length (bytecode stock2) - i + 1))
---   runMemoryState (memorySetIndexBytecode (i - 1) (Funk 4 (correspondingInt 4 (toInteger funkSize))))
-
 getWhile _ = return ()
 
 
@@ -486,8 +470,3 @@ astToBytecode :: Ast -> [Bytecode]
 astToBytecode ast = do
   let stock = execState (runMemoryState (getAll ast)) emptyMemory
   bcSecToList (bytecode stock)
-
--- astToBytecodeT :: Ast -> IO ()
--- astToBytecodeT ast = do
---   let stock = execState (runMemoryState (getAll ast)) emptyMemory
---   print stock

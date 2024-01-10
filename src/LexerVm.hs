@@ -68,6 +68,8 @@ data OpCode
   | Iconvert
   | Fconvert
   | Uconvert
+  | Addr
+  | Access
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -316,6 +318,8 @@ getCouple = do
     Iconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
     Fconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
     Uconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
+    Addr -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
+    Access -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
 
 vmToken :: BL.ByteString -> Maybe [Instruction]
 vmToken s = case runGetOrFail (getMany getCouple) s of

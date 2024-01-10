@@ -199,26 +199,8 @@ operationLoadVar x = Operation $ do
       runOperation (operationPushStack i)
     _ -> return ()
 
-operationStoreVar :: Int -> Operation ()
-operationStoreVar x = Operation $ do
-  pop <- runOperation operationPopStack
-  runOperation $ operationSetVar x pop
-
-operationRepeatOp :: Int -> Operation () -> Operation ()
-operationRepeatOp 0 _ = return ()
-operationRepeatOp x op = do
-  op
-  operationRepeatOp (x - 1) op
-
-operationJump :: (Integral a) => a -> [Instruction] -> Operation ()
-operationJump 0 _ = return ()
-operationJump x i = Operation $ do
-  cpu <- get
-  if x < 0
-    then do
-      let (l, _, _) = i !! ip cpu
-      put cpu {ip = ip cpu - 1}
-      runOperation $ operationJump (fromIntegral x - l) i
+operationAddr :: Variable -> Operation ()
+operationAddr x = Operation $ do(fromIntegral (S.length (cpuStack cpu))) - (fromIntegral x)l) i
     else do
       let (l, _, _) = i !! ip cpu
       put cpu {ip = ip cpu + 1}
@@ -463,6 +445,10 @@ exec (_, Uconvert, v) _ = do
     4 -> operationPushStack (U32 (getIntegral a))
     8 -> operationPushStack (U64 (getIntegral a))
     _ -> operationPushStack (U64 (getIntegral a))
+exec (_, Addr, v) _ = do
+  operationAddIp
+
+
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
