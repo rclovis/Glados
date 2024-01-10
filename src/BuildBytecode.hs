@@ -407,7 +407,7 @@ getWhile (While cond body) = MemoryState $ do
   runMemoryState (getAll cond)
   stock2 <- get
   sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
-  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode - 4)))}
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode + 4)))}
 
 
 
