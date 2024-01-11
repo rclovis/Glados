@@ -128,7 +128,7 @@ addI (U8 x) (U8 y) = U8 (x + y)
 addI (U16 x) (U16 y) = U16 (x + y)
 addI (U32 x) (U32 y) = U32 (x + y)
 addI (U64 x) (U64 y) = U64 (x + y)
-addI a b =
+addI b a =
   if lenVar a >= lenVar b
     then convertVar a (addI a (convertVar a b))
     else convertVar b (addI (convertVar b a) b)
@@ -136,7 +136,7 @@ addI a b =
 addF :: Variable -> Variable -> Variable
 addF (F32 x) (F32 y) = F32 (x + y)
 addF (F64 x) (F64 y) = F64 (x + y)
-addF a b =
+addF b a =
   if lenVar a >= lenVar b
     then convertVar a (addF a (convertVar a b))
     else convertVar b (addF (convertVar b a) b)
@@ -150,7 +150,7 @@ subI (U8 x) (U8 y) = U8 (x - y)
 subI (U16 x) (U16 y) = U16 (x - y)
 subI (U32 x) (U32 y) = U32 (x - y)
 subI (U64 x) (U64 y) = U64 (x - y)
-subI a b =
+subI b a =
   if lenVar a >= lenVar b
     then convertVar a (subI a (convertVar a b))
     else convertVar b (subI (convertVar b a) b)
@@ -158,7 +158,7 @@ subI a b =
 subF :: Variable -> Variable -> Variable
 subF (F32 x) (F32 y) = F32 (x - y)
 subF (F64 x) (F64 y) = F64 (x - y)
-subF a b =
+subF b a =
   if lenVar a >= lenVar b
     then convertVar a (subF a (convertVar a b))
     else convertVar b (subF (convertVar b a) b)
@@ -172,7 +172,7 @@ mulI (U8 x) (U8 y) = U8 (x * y)
 mulI (U16 x) (U16 y) = U16 (x * y)
 mulI (U32 x) (U32 y) = U32 (x * y)
 mulI (U64 x) (U64 y) = U64 (x * y)
-mulI a b =
+mulI b a =
   if lenVar a >= lenVar b
     then convertVar a (mulI a (convertVar a b))
     else convertVar b (mulI (convertVar b a) b)
@@ -180,7 +180,7 @@ mulI a b =
 mulF :: Variable -> Variable -> Variable
 mulF (F32 x) (F32 y) = F32 (x * y)
 mulF (F64 x) (F64 y) = F64 (x * y)
-mulF a b =
+mulF b a =
   if lenVar a >= lenVar b
     then convertVar a (mulF a (convertVar a b))
     else convertVar b (mulF (convertVar b a) b)
@@ -194,7 +194,7 @@ divI (U8 x) (U8 y) = U8 (x `div` y)
 divI (U16 x) (U16 y) = U16 (x `div` y)
 divI (U32 x) (U32 y) = U32 (x `div` y)
 divI (U64 x) (U64 y) = U64 (x `div` y)
-divI a b =
+divI b a =
   if lenVar a >= lenVar b
     then convertVar a (divI a (convertVar a b))
     else convertVar b (divI (convertVar b a) b)
@@ -202,7 +202,7 @@ divI a b =
 divF :: Variable -> Variable -> Variable
 divF (F32 x) (F32 y) = F32 (x / y)
 divF (F64 x) (F64 y) = F64 (x / y)
-divF a b =
+divF b a =
   if lenVar a >= lenVar b
     then convertVar a (divF a (convertVar a b))
     else convertVar b (divF (convertVar b a) b)
@@ -216,7 +216,7 @@ modI (U8 x) (U8 y) = U8 (x `mod` y)
 modI (U16 x) (U16 y) = U16 (x `mod` y)
 modI (U32 x) (U32 y) = U32 (x `mod` y)
 modI (U64 x) (U64 y) = U64 (x `mod` y)
-modI a b =
+modI b a =
   if lenVar a >= lenVar b
     then convertVar a (modI a (convertVar a b))
     else convertVar b (modI (convertVar b a) b)
@@ -230,7 +230,7 @@ eqI (U8 x) (U8 y) = I8 (bTI8(x == y))
 eqI (U16 x) (U16 y) = I8 (bTI8(x == y))
 eqI (U32 x) (U32 y) = I8 (bTI8(x == y))
 eqI (U64 x) (U64 y) = I8 (bTI8(x == y))
-eqI a b =
+eqI b a =
   if lenVar a >= lenVar b
     then convertVar a (eqI a (convertVar a b))
     else convertVar b (eqI (convertVar b a) b)
@@ -238,7 +238,7 @@ eqI a b =
 eqF :: Variable -> Variable -> Variable
 eqF (F32 x) (F32 y) = I8 (bTI8(x == y))
 eqF (F64 x) (F64 y) = I8 (bTI8(x == y))
-eqF a b =
+eqF b a =
   if lenVar a >= lenVar b
     then convertVar a (eqF a (convertVar a b))
     else convertVar b (eqF (convertVar b a) b)
@@ -252,7 +252,7 @@ neI (U8 x) (U8 y) = I8 (bTI8(x /= y))
 neI (U16 x) (U16 y) = I8 (bTI8(x /= y))
 neI (U32 x) (U32 y) = I8 (bTI8(x /= y))
 neI (U64 x) (U64 y) = I8 (bTI8(x /= y))
-neI a b =
+neI b a =
   if lenVar a >= lenVar b
     then convertVar a (neI a (convertVar a b))
     else convertVar b (neI (convertVar b a) b)
@@ -260,7 +260,7 @@ neI a b =
 neF :: Variable -> Variable -> Variable
 neF (F32 x) (F32 y) = I8 (bTI8(x /= y))
 neF (F64 x) (F64 y) = I8 (bTI8(x /= y))
-neF a b =
+neF b a =
   if lenVar a >= lenVar b
     then convertVar a (neF a (convertVar a b))
     else convertVar b (neF (convertVar b a) b)
@@ -274,7 +274,7 @@ ltI (U8 x) (U8 y) = I8 (bTI8(x < y))
 ltI (U16 x) (U16 y) = I8 (bTI8(x < y))
 ltI (U32 x) (U32 y) = I8 (bTI8(x < y))
 ltI (U64 x) (U64 y) = I8 (bTI8(x < y))
-ltI a b =
+ltI b a =
   if lenVar a >= lenVar b
     then convertVar a (ltI a (convertVar a b))
     else convertVar b (ltI (convertVar b a) b)
@@ -282,7 +282,7 @@ ltI a b =
 ltF :: Variable -> Variable -> Variable
 ltF (F32 x) (F32 y) = I8 (bTI8(x < y))
 ltF (F64 x) (F64 y) = I8 (bTI8(x < y))
-ltF a b =
+ltF b a =
   if lenVar a >= lenVar b
     then convertVar a (ltF a (convertVar a b))
     else convertVar b (ltF (convertVar b a) b)
@@ -296,7 +296,7 @@ gtI (U8 x) (U8 y) = I8 (bTI8(x > y))
 gtI (U16 x) (U16 y) = I8 (bTI8(x > y))
 gtI (U32 x) (U32 y) = I8 (bTI8(x > y))
 gtI (U64 x) (U64 y) = I8 (bTI8(x > y))
-gtI a b =
+gtI b a =
   if lenVar a >= lenVar b
     then convertVar a (gtI a (convertVar a b))
     else convertVar b (gtI (convertVar b a) b)
@@ -304,7 +304,7 @@ gtI a b =
 gtF :: Variable -> Variable -> Variable
 gtF (F32 x) (F32 y) = I8 (bTI8(x > y))
 gtF (F64 x) (F64 y) = I8 (bTI8(x > y))
-gtF a b =
+gtF b a =
   if lenVar a >= lenVar b
     then convertVar a (gtF a (convertVar a b))
     else convertVar b (gtF (convertVar b a) b)
@@ -318,7 +318,7 @@ leI (U8 x) (U8 y) = I8 (bTI8(x <= y))
 leI (U16 x) (U16 y) = I8 (bTI8(x <= y))
 leI (U32 x) (U32 y) = I8 (bTI8(x <= y))
 leI (U64 x) (U64 y) = I8 (bTI8(x <= y))
-leI a b =
+leI b a =
   if lenVar a >= lenVar b
     then convertVar a (leI a (convertVar a b))
     else convertVar b (leI (convertVar b a) b)
@@ -326,7 +326,7 @@ leI a b =
 leF :: Variable -> Variable -> Variable
 leF (F32 x) (F32 y) = I8 (bTI8(x <= y))
 leF (F64 x) (F64 y) = I8 (bTI8(x <= y))
-leF a b =
+leF b a =
   if lenVar a >= lenVar b
     then convertVar a (leF a (convertVar a b))
     else convertVar b (leF (convertVar b a) b)
@@ -340,7 +340,7 @@ geI (U8 x) (U8 y) = I8 (bTI8(x >= y))
 geI (U16 x) (U16 y) = I8 (bTI8(x >= y))
 geI (U32 x) (U32 y) = I8 (bTI8(x >= y))
 geI (U64 x) (U64 y) = I8 (bTI8(x >= y))
-geI a b =
+geI b a =
   if lenVar a >= lenVar b
     then convertVar a (geI a (convertVar a b))
     else convertVar b (geI (convertVar b a) b)
@@ -348,7 +348,7 @@ geI a b =
 geF :: Variable -> Variable -> Variable
 geF (F32 x) (F32 y) = I8 (bTI8(x >= y))
 geF (F64 x) (F64 y) = I8 (bTI8(x >= y))
-geF a b =
+geF b a =
   if lenVar a >= lenVar b
     then convertVar a (geF a (convertVar a b))
     else convertVar b (geF (convertVar b a) b)
@@ -362,7 +362,7 @@ andI (U8 x) (U8 y) = U8 (x .&. y)
 andI (U16 x) (U16 y) = U16 (x .&. y)
 andI (U32 x) (U32 y) = U32 (x .&. y)
 andI (U64 x) (U64 y) = U64 (x .&. y)
-andI a b =
+andI b a =
   if lenVar a >= lenVar b
     then convertVar a (andI a (convertVar a b))
     else convertVar b (andI (convertVar b a) b)
@@ -376,7 +376,7 @@ orI (U8 x) (U8 y) = U8 (x .|. y)
 orI (U16 x) (U16 y) = U16 (x .|. y)
 orI (U32 x) (U32 y) = U32 (x .|. y)
 orI (U64 x) (U64 y) = U64 (x .|. y)
-orI a b =
+orI b a =
   if lenVar a >= lenVar b
     then convertVar a (orI a (convertVar a b))
     else convertVar b (orI (convertVar b a) b)
@@ -390,7 +390,7 @@ xorI (U8 x) (U8 y) = U8 (x `xor` y)
 xorI (U16 x) (U16 y) = U16 (x `xor` y)
 xorI (U32 x) (U32 y) = U32 (x `xor` y)
 xorI (U64 x) (U64 y) = U64 (x `xor` y)
-xorI a b =
+xorI b a =
   if lenVar a >= lenVar b
     then convertVar a (xorI a (convertVar a b))
     else convertVar b (xorI (convertVar b a) b)
