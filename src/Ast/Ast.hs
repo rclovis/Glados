@@ -259,12 +259,12 @@ getReturn (A (Identifier "return") : xs) = do
   pure (Return expr, xs')
 getReturn _ = Nothing
 
-getReturn :: [Expr] -> Maybe (Ast, [Expr])
-getReturn (A (Identifier "write") : xs) = do
+getWrite :: [Expr] -> Maybe (Ast, [Expr])
+getWrite (A (Identifier "write") : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
-  pure (Return expr, xs')
-getReturn _ = Nothing
+  pure (Write expr, xs')
+getWrite _ = Nothing
 
 getNumber :: [Expr] -> Maybe Ast
 getNumber [A (INumber n)] = pure (Int n)
