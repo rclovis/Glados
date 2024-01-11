@@ -288,12 +288,12 @@ defaultValue _ = Int 0
 
 getAssign :: [Expr] -> Maybe (Ast, [Expr])
 getAssign (Expr.Indexing name (Brackets index) : A (Symbol "=") : xs) = do
-  (value', xs') <- getArr xs
+  (value, xs') <- getArr xs <|> getValueEnd xs
   index' <- getValue $ reverse index
-  pure (AssignArray name index' value', xs')
+  pure (AssignArray name index' value, xs')
 getAssign (A (Identifier name) : A (Symbol "=") : xs) = do
-  (expr, xs') <- getArr xs <|> getValueEnd xs
-  pure (Assign name expr, xs')
+  (value, xs') <- getArr xs <|> getValueEnd xs
+  pure (Assign name value, xs')
 getAssign _ = Nothing
 
 getValueEnd :: [Expr] -> Maybe (Ast, [Expr])
