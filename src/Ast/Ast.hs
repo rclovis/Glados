@@ -240,7 +240,7 @@ getAssign :: [Expr] -> Maybe (Ast, [Expr])
 getAssign (Expr.Indexing name (Brackets index) : A (Symbol "=") : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   index' <- getValue $ reverse index
-  value' <- getValue value
+  value' <- getValue $ reverse value
   pure (AssignArray name index' value', xs')
 getAssign (A (Identifier name) : A (Symbol "=") : Brackets expr : A End : xs) = do
   let value' = splitBySeparator (== A Comma) expr
