@@ -419,6 +419,50 @@ getReturn (Ast.Ast.Return ast) = MemoryState $ do
   put stock {bytecode = bytecode stock |> Bytecode.Return}
 getReturn _ = return ()
 
+getArrayValue :: Ast -> Type -> MemoryState ()
+getArrayValue (ArrayValue (a : as)) t = MemoryState $ do
+  stock <- get
+  case (t, a) of
+    (Ti8, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Iconst 1 (correspondingInt 1 (toInteger n))}
+    (Ti16, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Iconst 2 (correspondingInt 2 (toInteger n))}
+    (Ti32, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Iconst 4 (correspondingInt 4 (toInteger n))}
+    (Ti64, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Iconst 8 (correspondingInt 8 (toInteger n))}
+    (Tu8, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Uconst 1 (correspondingWord 1 (toInteger n))}
+    (Tu16, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Uconst 2 (correspondingWord 2 (toInteger n))}
+    (Tu32, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Uconst 4 (correspondingWord 4 (toInteger n))}
+    (Tu64, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Uconst 8 (correspondingWord 8 (toInteger n))}
+    (Tf32, Float n) -> put stock {bytecode = bytecode stock |> Bytecode.Fconst 4 (correspondingFloat 4 (toRational n))}
+    (Tf64, Float n) -> put stock {bytecode = bytecode stock |> Bytecode.Fconst 8 (correspondingFloat 8 (toRational n))}
+    _ -> error "zbi"
+  runMemoryState (getArrayValue (ArrayValue as) t)
+getArrayValue _ _ = return ()
+
+getArray :: Ast -> MemoryState ()
+getArray (Array types sizes arrayVal) = MemoryState $ do
+  runMemoryState (getArrayValue arrayVal types)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Bytecode.Addr 8 (correspondingWord 8 (toInteger sizes))}
+getArray _ = return ()
+
+getIndexing :: Ast -> MemoryState ()
+getIndexing (Indexing name ast) = MemoryState $ do
+  runMemoryState (getAll ast)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Iload 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
+  stock2 <- get
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Iadd |> Bytecode.Access}
+getIndexing _ = return ()
+
+getAssignArray :: Ast -> MemoryState ()
+getAssignArray (AssignArray str ast1 ast2) = MemoryState $ do
+  runMemoryState (getAll ast1)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Iload 2 (correspondingInt 2 (toInteger (memoryGetVarIndex str (index (memVar stock) 0)))) |> Bytecode.Iadd}
+  runMemoryState (getAll ast2)
+  stock2 <- get
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Modify}
+getAssignArray _ = return ()
+
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
@@ -444,6 +488,12 @@ getAll (While cond body) = MemoryState $ do
   runMemoryState (getWhile (While cond body))
 getAll (UnOp op ast) = MemoryState $ do
   runMemoryState (getUnOp (UnOp op ast))
+getAll (Array type_ siz ast) = MemoryState $ do
+  runMemoryState (getArray (Array type_ siz ast))
+getAll (Indexing name ast) = MemoryState $ do
+  runMemoryState (getIndexing (Indexing name ast))
+getAll (AssignArray str ast1 ast2) = MemoryState $ do
+  runMemoryState (getAssignArray (AssignArray str ast1 ast2))
 getAll _ = return ()
 
 bcSecToList :: S.Seq Bytecode -> [Bytecode]
