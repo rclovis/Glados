@@ -14,4 +14,13 @@ funk factorial2 (n: i64): i64 {
     }
     return n * factorial2(n - 1);
 }
-factorial2(15);
+
+funk test (n: i64): i32 {
+    var a: i32[5] = [10, 20, 30];
+    a[2] = a[2] + 2;
+    return a[2];
+}
+
+factorial1(10);
+factorial2(10);
+test(10);

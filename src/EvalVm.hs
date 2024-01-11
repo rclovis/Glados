@@ -186,7 +186,7 @@ operationSetVar x y = Operation $ do
   case cpuVar cpu of
     (cpuVarTop :<| xs) -> do
       if S.length cpuVarTop > x
-        then put cpu {cpuVar = S.update (x - (S.length cpuVarTop - 1)) y cpuVarTop <| xs}
+        then put cpu {cpuVar = S.update (S.length cpuVarTop - 1 - x) y cpuVarTop <| xs}
         else runOperation (operationPushVar y)
     _ -> return ()
 
@@ -195,19 +195,28 @@ operationLoadVar x = Operation $ do
   cpu <- get
   case cpuVar cpu of
     (cpuVarTop :<| _) -> do
-      let i = cpuVarTop `S.index` x
+      let i = cpuVarTop `S.index` (S.length cpuVarTop - 1 - x)
       runOperation (operationPushStack i)
     _ -> return ()
 
--- operationAddr :: Variable -> Operation ()
--- operationAddr x = Operation $ do
---   cpu <- get
---   case cpuVar cpu of
---     (cpuVarTop :<| _) -> do
---       runOperation (operationPushStack x)
---     _ -> return ()
+operationAddr :: Variable -> Operation ()
+operationAddr x = Operation $ do
+  cpu <- get
+  put cpu {cpuStack = U64 (fromIntegral (S.length (cpuStack cpu) - getIntegral x)) <| cpuStack cpu}
+
+operationAccess :: Int -> Operation ()
+operationAccess x = Operation $ do
+  cpu <- get
+  put cpu {cpuStack = cpuStack cpu `S.index` (S.length (cpuStack cpu) - 1 - x) <| cpuStack cpu}
+
+operationModify :: Int -> Variable -> Operation ()
+operationModify x y = Operation $ do
+  cpu <- get
+  put cpu {cpuStack = S.update (S.length (cpuStack cpu) - 1 - x) y (cpuStack cpu)}
+
 operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
+  cpu <- get
   pop <- runOperation operationPopStack
   runOperation (operationSetVar x pop)
 
@@ -224,8 +233,13 @@ operationJump x i = Operation $ do
   if x < 0
     then do
       let (l, _, _) = i !! ip cpu
-      put cpu {ip = ip cpu - 1}
-      runOperation $ operationJump (fromIntegral x + l) i
+      if (fromIntegral x + l) /= 0
+        then do
+          put cpu {ip = ip cpu - 1}
+          runOperation $ operationJump (fromIntegral x + l) i
+        else runOperation $ operationJump (fromIntegral x + l) i
+      -- put cpu {ip = ip cpu - 1}
+      -- runOperation $ operationJump (fromIntegral x + l) i
     else do
       let (l, _, _) = i !! ip cpu
       put cpu {ip = ip cpu + 1}
@@ -472,8 +486,16 @@ exec (_, Uconvert, v) _ = do
     _ -> operationPushStack (U64 (getIntegral a))
 exec (_, Addr, v) _ = do
   operationAddIp
-
-
+  operationAddr v
+exec (_, Access, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  operationAccess (getIntegral a)
+exec (_, Modify, _) _ = do
+  operationAddIp
+  a <- operationPopStack -- value
+  b <- operationPopStack -- index
+  operationModify (getIntegral b) a
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
@@ -482,7 +504,6 @@ execOp :: [Instruction] -> Operation ()
 execOp i = do
   cpu <- Operation get
   if ip cpu >= Prelude.length i
-  -- if loop cpu == 17
     then return ()
     else do
       exec (i !! ip cpu) i

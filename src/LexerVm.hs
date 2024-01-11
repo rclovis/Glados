@@ -70,6 +70,8 @@ data OpCode
   | Uconvert
   | Addr
   | Access
+  | Modify
+  | Write
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -199,6 +201,14 @@ getInstruction =
     <$ getWord8Value 49
       <|> Uconvert
     <$ getWord8Value 50
+      <|> Addr
+    <$ getWord8Value 51
+      <|> Access
+    <$ getWord8Value 52
+      <|> Modify
+    <$ getWord8Value 53
+      <|> Write
+    <$ getWord8Value 54
 
 
 getVariableI :: Get Variable
@@ -329,6 +339,8 @@ getCouple = do
     Uconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
     Addr -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
     Access -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Modify -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
+    Write -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
 
 
 
