@@ -19,6 +19,8 @@ module Parser
     parseUFloat,
     parseOneChar,
     parseByte,
+    parseAnyCharBut,
+    parseAnyCharUntil,
   )
 where
 
@@ -112,6 +114,23 @@ parseAnyChar s = Parser f
       | otherwise = Nothing
     f [] = Nothing
 
+parseAnyCharBut :: String -> Parser Char
+parseAnyCharBut s = Parser f
+  where
+    f (x : xs)
+      | x `notElem` s = Just (x, xs)
+      | otherwise = Nothing
+    f [] = Nothing
+
+parseAnyCharUntil :: String -> Parser String
+parseAnyCharUntil s = Parser f
+  where
+    f (x : xs) = case runParser (parseString s) (x : xs) of
+      Just _ -> Just ("" , x : xs)
+      Nothing -> case runParser (parseAnyCharUntil s) xs of
+        Just (xs', s') -> Just (x : xs', s')
+        Nothing -> Nothing
+    f [] = Just ("", [])
 
 parseOr :: Parser a -> Parser a -> Parser a
 parseOr p1 p2 = p1 <|> p2

@@ -7,13 +7,14 @@ import System.Environment (getArgs)
 
 import Bytecode (getBin, getHumanReadable)
 import BuildBytecode (astToBytecode)
+import Preprocessing (preprocessing)
 
 import qualified Data.ByteString as B
 
 main :: IO ()
 main = do
   fileNames <- getArgs
-  file <- readFile (head fileNames)
+  file <- preprocessing fileNames
   let ast = do
         tokens <- tokenize file
         expr <- genExpr tokens

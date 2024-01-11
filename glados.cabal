@@ -35,6 +35,7 @@ library
       LexerVm
       OpNumber
       Parser
+      Preprocessing
   other-modules:
       Paths_glados
   autogen-modules:

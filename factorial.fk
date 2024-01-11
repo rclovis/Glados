@@ -14,4 +14,4 @@ funk factorial2 (n: i64): i64 {
     }
     return n * factorial2(n - 1);
 }
-factorial2(5);
+factorial2(15);
