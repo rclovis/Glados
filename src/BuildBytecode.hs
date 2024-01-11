@@ -450,8 +450,18 @@ getIndexing (Indexing name ast) = MemoryState $ do
   stock <- get
   put stock {bytecode = bytecode stock |> Iload 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock) 0))))}
   stock2 <- get
-  put stock2 {bytecode = bytecode stock2 |> Bytecode.Access}
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Iadd |> Bytecode.Access}
 getIndexing _ = return ()
+
+getAssignArray :: Ast -> MemoryState ()
+getAssignArray (AssignArray str ast1 ast2) = MemoryState $ do
+  runMemoryState (getAll ast1)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Iload 2 (correspondingInt 2 (toInteger (memoryGetVarIndex str (index (memVar stock) 0)))) |> Bytecode.Iadd}
+  runMemoryState (getAll ast2)
+  stock2 <- get
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Modify}
+getAssignArray _ = return ()
 
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
@@ -482,6 +492,8 @@ getAll (Array type_ siz ast) = MemoryState $ do
   runMemoryState (getArray (Array type_ siz ast))
 getAll (Indexing name ast) = MemoryState $ do
   runMemoryState (getIndexing (Indexing name ast))
+getAll (AssignArray str ast1 ast2) = MemoryState $ do
+  runMemoryState (getAssignArray (AssignArray str ast1 ast2))
 getAll _ = return ()
 
 bcSecToList :: S.Seq Bytecode -> [Bytecode]

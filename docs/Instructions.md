@@ -50,3 +50,5 @@
 | 0x30 ... 0x32 | `iconvert`, `uconvert`, `fconvert`       | True          |
 | 0x33          | `addr`                                   | True          |
 | 0x34          | `access`                                 | False          |
+| 0x35          | `modify`                                 | False          |
+| 0x36          | `write`                                  | False          |

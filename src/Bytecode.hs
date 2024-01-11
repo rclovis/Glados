@@ -79,6 +79,8 @@ data Bytecode
   | Uconvert Word8 Word8
   | Addr Word8 WordTypes
   | Access
+  | Modify
+  | Write
   deriving (Show, Eq)
 
 intTypesTo8bit :: IntTypes -> [Word8]
@@ -276,6 +278,8 @@ toBin (Fconvert a b) = [49, a, b]
 toBin (Uconvert a b) = [50, a, b]
 toBin (Addr a b) = [51, a] ++ wordTypesTo8bit b
 toBin Access = [52]
+toBin Modify = [53]
+toBin Write = [54]
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
@@ -334,6 +338,8 @@ toHumanReadable (Fconvert _ b) = "  Fconvert " ++ show b ++ "\n"
 toHumanReadable (Uconvert _ b) = "  Uconvert " ++ show b ++ "\n"
 toHumanReadable (Addr _ b) = "  Addr " ++ show b ++ "\n"
 toHumanReadable Access = "  Access\n"
+toHumanReadable Modify = "  Modify\n"
+toHumanReadable Write = "  Write\n"
 
 bytecode :: [Bytecode]
 bytecode =
@@ -411,3 +417,5 @@ getSizeBytecode (Fconvert _ _) = 3
 getSizeBytecode (Uconvert _ _) = 3
 getSizeBytecode (Addr x _) = fromIntegral x + 2
 getSizeBytecode Access = 1
+getSizeBytecode Modify = 1
+getSizeBytecode Write = 1
