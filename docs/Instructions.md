@@ -47,3 +47,6 @@
 | 0x2B          | `popPrev`                                | True          |
 | 0x2C ... 0x2E | `iloadStack`, `floadStack`, `uloadStack` | True          |
 | 0x2F          | `not`                                    | False          |
+| 0x30 ... 0x32 | `iconvert`, `uconvert`, `fconvert`       | True          |
+| 0x33          | `addr`                                   | True          |
+| 0x34          | `access`                                 | False          |
