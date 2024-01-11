@@ -87,6 +87,7 @@ getValue xs =
     <|> error ("Invalid Expression: " ++ show xs)
   where
     getCallFunk :: [Expr] -> Maybe Ast
+    getCallFunk [FuncCall name (Parenthesis [])] = pure (Call name [])
     getCallFunk [FuncCall name (Parenthesis args)] = do
       args' <- getValue $ reverse args
       pure (Call name [args'])
@@ -179,9 +180,11 @@ getIf (A Lexer.If : Parenthesis cond : Braces body : xs) = do
 getIf _ = Nothing
 
 getCall :: [Expr] -> Maybe (Ast, [Expr])
+getCall (FuncCall name (Parenthesis []) : A End : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : A End : xs) = do
   args' <- getValue args
   pure (Call name [args'], xs)
+getCall (FuncCall name (Parenthesis []) : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : xs) = do
   args' <- getValue args
   pure (Call name [args'], xs)
