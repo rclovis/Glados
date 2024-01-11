@@ -151,9 +151,6 @@ parseOperator =
 parseFunk :: Parser Token
 parseFunk = fmap (const Funk) (parseString "funk")
 
-parseInclude :: Parser Token
-parseInclude = fmap (const Include) (parseString "include")
-
 parseVar :: Parser Token
 parseVar = fmap (const Var) (parseString "var")
 
@@ -203,7 +200,7 @@ parseComment :: Parser Token
 parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseEnd <|> parseComma <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseContinue <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parsefNumber <|> parseiNumber <|> parseOperator <|> parseBoolean  <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken = parseComment <|> parseEnd <|> parseComma <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseContinue <|> parseIf <|> parseElse <|> parseVar <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parsefNumber <|> parseiNumber <|> parseOperator <|> parseBoolean  <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of
