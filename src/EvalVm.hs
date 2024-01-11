@@ -7,14 +7,11 @@ where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
-import Data.Int
 import Data.Sequence as S
-import Data.Word
 import LexerVm
   ( Instruction,
     OpCode (..),
     Variable (..),
-    vmToken,
   )
 import OpNumber
   ( addF,
@@ -42,7 +39,6 @@ import OpNumber
     subI,
     xorI,
   )
-import System.Environment (getArgs)
 
 data Cpu = Cpu
   { ip :: Int, -- Instruction pointer
@@ -97,11 +93,10 @@ instance Applicative Operation where
 instance Alternative Operation where
   empty :: Operation a
   empty = Operation $ do
-    cpu <- get
     return undefined
 
   (<|>) :: Operation a -> Operation a -> Operation a
-  (Operation op1) <|> (Operation op2) = Operation $ do
+  (Operation op1) <|> (Operation _) = Operation $ do
     cpu <- get
     let (x, cpu') = runState op1 cpu
     put cpu'
@@ -145,9 +140,11 @@ operationPushFunk x = Operation $ do
 operationPopStack :: Operation Variable
 operationPopStack = Operation $ do
   cpu <- get
-  let (x :<| xs) = cpuStack cpu
-  put cpu {cpuStack = xs}
-  return x
+  case cpuStack cpu of
+    S.Empty -> return (I64 0)
+    (x :<| xs) -> do
+      put cpu {cpuStack = xs}
+      return x
 
 operationPopStackDiscard :: Operation ()
 operationPopStackDiscard = Operation $ do
@@ -216,7 +213,6 @@ operationModify x y = Operation $ do
 
 operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
-  cpu <- get
   pop <- runOperation operationPopStack
   runOperation (operationSetVar x pop)
 
@@ -238,8 +234,6 @@ operationJump x i = Operation $ do
           put cpu {ip = ip cpu - 1}
           runOperation $ operationJump (fromIntegral x + l) i
         else runOperation $ operationJump (fromIntegral x + l) i
-      -- put cpu {ip = ip cpu - 1}
-      -- runOperation $ operationJump (fromIntegral x + l) i
     else do
       let (l, _, _) = i !! ip cpu
       put cpu {ip = ip cpu + 1}
@@ -276,7 +270,7 @@ exec :: Instruction -> [Instruction] -> Operation ()
 exec (_, Funk, v) i = do
   cpu <- Operation get
   operationPushFunk (ip cpu)
-  operationJump (getIntegral v) i
+  operationJump (getIntegral v :: Int) i
 exec (_, Iload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
 exec (_, Fload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
 exec (_, Uload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
@@ -393,15 +387,15 @@ exec (_, Fge, _) _ = do
   operationPushStack (geF a b)
 exec (_, Ift, v) i = do
   a <- operationPopStack
-  if getIntegral a == 1
-    then operationJump (getIntegral v) i
+  if (getIntegral a :: Int) == 1
+    then operationJump (getIntegral v :: Int) i
     else operationAddIp
 exec (_, Iff, v) i = do
   a <- operationPopStack
-  if getIntegral a == 1
+  if (getIntegral a :: Int) == 1
     then operationAddIp
-    else operationJump (getIntegral v) i
-exec (_, Goto, v) i = operationJump (getIntegral v) i
+    else operationJump (getIntegral v :: Int) i
+exec (_, Goto, v) i = operationJump (getIntegral v :: Int) i
 exec (_, Iand, _) _ = do
   operationAddIp
   a <- operationPopStack
@@ -430,9 +424,16 @@ exec (_, Return, _) _ = do
   cpu <- Operation get
   ipt <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
   fpt <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
+  operationRepeatOp (S.length (cpuStack cpu) - 1 - fp cpu - 2 - 1) popStack
   operationSetFp (getIntegral fpt)
   operationSetIp (getIntegral ipt)
   operationPopVariableScope
+    where
+      popStack :: Operation ()
+      popStack = do
+        cpu <- Operation get
+        _ <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
+        return ()
 exec (_, Pop, v) _ = do
   operationAddIp
   operationRepeatOp (getIntegral v) operationPopStackDiscard
@@ -493,9 +494,12 @@ exec (_, Access, _) _ = do
   operationAccess (getIntegral a)
 exec (_, Modify, _) _ = do
   operationAddIp
-  a <- operationPopStack -- value
-  b <- operationPopStack -- index
+  a <- operationPopStack
+  b <- operationPopStack
   operationModify (getIntegral b) a
+-- exec (_, Write, _) _ = do
+--   operationAddIp
+--   a <- operationPopStack
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)

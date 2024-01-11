@@ -1,6 +1,0 @@
-#define F1 OOOOOOO
-#include "testPreprossessing/factorial3.fk"
-#include "testPreprossessing/factorial2.fk"
-#include "testPreprossessing/factorial4.fk"
-
-c'est le fichier F1
