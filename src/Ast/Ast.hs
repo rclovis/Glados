@@ -13,7 +13,6 @@ import Ast.Op (Op (..))
 import Ast.Types (Type (..))
 import Ast.Utils (takeUntil)
 import Control.Applicative
-import GHC.Base (Symbol)
 import Lexer (OperatorParsed (..), Token (..), TypeParsed (..))
 
 type Arg = (String, Type)
@@ -86,7 +85,7 @@ getValue xs =
   where
     getCallFunk :: [Expr] -> Maybe Ast
     getCallFunk [FuncCall name (Parenthesis args)] = do
-      args' <- getValue args
+      args' <- getValue $ reverse args
       pure (Call name [args'])
     getCallFunk _ = Nothing
 
@@ -104,7 +103,7 @@ getParentheses _ = Nothing
 
 getIndexing :: [Expr] -> Maybe Ast
 getIndexing (Expr.Indexing name (Brackets expr) : _) = do
-  expr' <- getValue expr
+  expr' <- (getValue . reverse) expr
   pure (Ast.Ast.Indexing name expr')
 getIndexing _ = Nothing
 
@@ -203,7 +202,7 @@ getContinue _ = Nothing
 getArrayValue :: [Expr] -> Maybe Ast
 getArrayValue [Brackets expr] = do
   let value = splitBySeparator (== A Comma) expr
-  expr' <- mapM getValue value
+  expr' <- mapM (getValue . reverse) value
   pure (ArrayValue expr')
 getArrayValue _ = Nothing
 
@@ -211,7 +210,7 @@ getDefine :: [Expr] -> Maybe (Ast, [Expr])
 getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : Brackets [A (INumber sz)] : A (Symbol "=") : Brackets val : A End : xs) = do
   t' <- getType t
   let val' = splitBySeparator (== A Comma) val
-  expr <- mapM getValue val'
+  expr <- mapM (getValue . reverse) val'
   let n = sz - length expr
   expr' <-
     if n < 0
@@ -238,7 +237,7 @@ defaultValue _ = Int 0
 getAssign :: [Expr] -> Maybe (Ast, [Expr])
 getAssign (Expr.Indexing name (Brackets index) : A (Symbol "=") : xs) = do
   let (value, xs') = takeUntil (== A End) xs
-  index' <- getValue index
+  index' <- getValue $ reverse index
   value' <- getValue value
   pure (AssignArray name index' value', xs')
 getAssign (A (Identifier name) : A (Symbol "=") : Brackets expr : A End : xs) = do
