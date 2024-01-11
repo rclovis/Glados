@@ -27,6 +27,7 @@ data Ast
   | Lambda [Arg] Ast
   | Call String [Ast]
   | Return Ast
+  | Write Ast
   | If Ast Ast Ast
   | While Ast Ast
   | Break
@@ -60,6 +61,7 @@ getAst xs = do
       <|> getDefine xs
       <|> getAssign xs
       <|> getReturn xs
+      <|> getWrite xs
       <|> case getValue [Parenthesis xs] of
         Nothing -> Nothing
         Just ast -> Just (ast, [])
@@ -252,6 +254,13 @@ getAssign _ = Nothing
 
 getReturn :: [Expr] -> Maybe (Ast, [Expr])
 getReturn (A (Identifier "return") : xs) = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (Return expr, xs')
+getReturn _ = Nothing
+
+getReturn :: [Expr] -> Maybe (Ast, [Expr])
+getReturn (A (Identifier "write") : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
   pure (Return expr, xs')
