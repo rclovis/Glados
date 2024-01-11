@@ -8,6 +8,11 @@ funk strlen(str: u64): i32 {
     }
     return i;
 }
-
+funk test (n: i64): i32 {
+    var a: i32[5] = [10, 20, 30];
+    a[2] = a[2] + 2;
+    return a[2];
+}
 strlen(a);
+test(a[0]);
 
