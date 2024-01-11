@@ -9,9 +9,7 @@ where
 
 -- import Ast.Ast (factorial)
 import Control.Applicative (Alternative (..))
-import Data.Char
 import Data.Int
-import Data.List (foldl')
 import Data.Word
 import qualified Data.ByteString.Lazy as BL
 import Data.Binary.Get

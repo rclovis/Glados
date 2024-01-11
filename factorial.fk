@@ -1,26 +1,13 @@
-funk factorial1 (n: i32): i32 {
-    var result: i32 = 1;
-    while (n > 1) {
-        result = result * n;
-        n = n - 1;
+
+var a: i32[5] = [10, 20, 30, 43, 0];
+
+funk strlen(str: u64): i32 {
+    var i: i32 = 0;
+    while (str[i] != 0) {
+        i = i + 1;
     }
-    return result;
+    return i;
 }
 
+strlen(a);
 
-funk factorial2 (n: i64): i64 {
-    if (n == 0) {
-        return 1;
-    }
-    return n * factorial2(n - 1);
-}
-
-funk test (n: i64): i32 {
-    var a: i32[5] = [10, 20, 30];
-    a[2] = a[2] + 2;
-    return a[2];
-}
-
-factorial1(10);
-factorial2(10);
-test(10);
