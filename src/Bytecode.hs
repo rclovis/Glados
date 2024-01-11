@@ -77,6 +77,10 @@ data Bytecode
   | Iconvert Word8 Word8
   | Fconvert Word8 Word8
   | Uconvert Word8 Word8
+  | Addr Word8 WordTypes
+  | Access
+  | Modify
+  | Write
   deriving (Show, Eq)
 
 intTypesTo8bit :: IntTypes -> [Word8]
@@ -272,15 +276,19 @@ toBin Not = [47]
 toBin (Iconvert a b) = [48, a, b]
 toBin (Fconvert a b) = [49, a, b]
 toBin (Uconvert a b) = [50, a, b]
+toBin (Addr a b) = [51, a] ++ wordTypesTo8bit b
+toBin Access = [52]
+toBin Modify = [53]
+toBin Write = [54]
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
 
 toHumanReadable :: Bytecode -> [Char]
 toHumanReadable (Funk _ b) = "Funk " ++ show b ++ "\n"
-toHumanReadable (Iload _ b) = " Iload " ++ show b ++ "\n"
-toHumanReadable (Fload _ b) = " Fload " ++ show b ++ "\n"
-toHumanReadable (Uload _ b) = " Uload " ++ show b ++ "\n"
+toHumanReadable (Iload _ b) = "  Iload " ++ show b ++ "\n"
+toHumanReadable (Fload _ b) = "  Fload " ++ show b ++ "\n"
+toHumanReadable (Uload _ b) = "  Uload " ++ show b ++ "\n"
 toHumanReadable (Istore _ b) = "  Istore " ++ show b ++ "\n"
 toHumanReadable (Fstore _ b) = "  Fstore " ++ show b ++ "\n"
 toHumanReadable (Ustore _ b) = "  Ustore " ++ show b ++ "\n"
@@ -328,6 +336,10 @@ toHumanReadable Not = "  Not\n"
 toHumanReadable (Iconvert _ b) = "  Iconvert " ++ show b ++ "\n"
 toHumanReadable (Fconvert _ b) = "  Fconvert " ++ show b ++ "\n"
 toHumanReadable (Uconvert _ b) = "  Uconvert " ++ show b ++ "\n"
+toHumanReadable (Addr _ b) = "  Addr " ++ show b ++ "\n"
+toHumanReadable Access = "  Access\n"
+toHumanReadable Modify = "  Modify\n"
+toHumanReadable Write = "  Write\n"
 
 bytecode :: [Bytecode]
 bytecode =
@@ -403,3 +415,7 @@ getSizeBytecode Not = 1
 getSizeBytecode (Iconvert _ _) = 3
 getSizeBytecode (Fconvert _ _) = 3
 getSizeBytecode (Uconvert _ _) = 3
+getSizeBytecode (Addr x _) = fromIntegral x + 2
+getSizeBytecode Access = 1
+getSizeBytecode Modify = 1
+getSizeBytecode Write = 1

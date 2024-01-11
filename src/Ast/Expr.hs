@@ -13,6 +13,7 @@ data Expr
   | Braces [Expr]
   | Brackets [Expr]
   | FuncCall String Expr
+  | Indexing String Expr
   | A Token
   deriving (Eq, Show)
 
@@ -21,7 +22,25 @@ genExpr [] = Nothing
 genExpr tokens = do
   (expr, []) <- safeGenGroup tokens
   let (expr', _) = getFuncCall expr
-  pure expr'
+  let expr'' = getIndexing expr'
+  pure expr''
+
+getIndexing :: [Expr] -> [Expr]
+getIndexing [] = []
+getIndexing (A (Identifier name) : Brackets expr : xs) = Indexing name (Brackets expr) : getIndexing xs
+getIndexing (FuncCall name (Parenthesis expr) : xs) = do
+  let expr' = getIndexing expr
+  FuncCall name (Parenthesis expr') : getIndexing xs
+getIndexing (Parenthesis expr : xs) = do
+  let expr' = getIndexing expr
+  Parenthesis expr' : getIndexing xs
+getIndexing (Braces expr : xs) = do
+  let expr' = getIndexing expr
+  Braces expr' : getIndexing xs
+getIndexing (Brackets expr : xs) = do
+  let expr' = getIndexing expr
+  Brackets expr' : getIndexing xs
+getIndexing (x : xs) = x : getIndexing xs
 
 getFuncCall :: [Expr] -> ([Expr], [Expr])
 getFuncCall [] = ([], [])
