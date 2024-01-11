@@ -288,19 +288,19 @@ defaultValue _ = Int 0
 
 getAssign :: [Expr] -> Maybe (Ast, [Expr])
 getAssign (Expr.Indexing name (Brackets index) : A (Symbol "=") : xs) = do
-  let (value, xs') = takeUntil (== A End) xs
+  (value', xs') <- getArr xs
   index' <- getValue $ reverse index
-  value' <- getValue $ reverse value
   pure (AssignArray name index' value', xs')
-getAssign (A (Identifier name) : A (Symbol "=") : Brackets expr : A End : xs) = do
-  let value' = splitBySeparator (== A Comma) expr
-  expr' <- mapM getValue value'
-  pure (Assign name (ArrayValue expr'), xs)
 getAssign (A (Identifier name) : A (Symbol "=") : xs) = do
-  let (value, xs') = takeUntil (== A End) xs
-  (expr, _) <- getAst value
+  (expr, xs') <- getArr xs <|> getValueEnd xs
   pure (Assign name expr, xs')
 getAssign _ = Nothing
+
+getValueEnd :: [Expr] -> Maybe (Ast, [Expr])
+getValueEnd xs = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (expr, xs')
 
 getReturn :: [Expr] -> Maybe (Ast, [Expr])
 getReturn (A (Identifier "return") : xs) = do
