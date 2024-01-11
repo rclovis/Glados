@@ -5,7 +5,7 @@ on:
     branches:
       - main
   push:
-    branches: 
+    branches:
       - develop
   workflow_dispatch:
 
@@ -16,17 +16,8 @@ jobs:
     env:
       STACK_ROOT: /root/.stack
 
-
     steps:
       - uses: actions/checkout@v3
-
-      - name: Cache stack
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.STACK_ROOT }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-stack-
 
       - name: Build
         run: |
