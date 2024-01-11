@@ -13,6 +13,7 @@ import Ast.Op (Op (..))
 import Ast.Types (Type (..))
 import Ast.Utils (takeUntil)
 import Control.Applicative
+import Data.Char (ord)
 import Lexer (OperatorParsed (..), Token (..), TypeParsed (..))
 
 type Arg = (String, Type)
@@ -209,22 +210,71 @@ getArrayValue [Brackets expr] = do
 getArrayValue _ = Nothing
 
 getDefine :: [Expr] -> Maybe (Ast, [Expr])
-getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : Brackets [A (INumber sz)] : A (Symbol "=") : Brackets val : A End : xs) = do
+getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : Brackets size : A (Symbol "=") : xs) = do
   t' <- getType t
-  let val' = splitBySeparator (== A Comma) val
-  expr <- mapM (getValue . reverse) val'
-  let n = sz - length expr
-  expr' <-
-    if n < 0
-      then error "Array size is bigger than the number of elements"
-      else pure (expr ++ replicate n (defaultValue t'))
-  pure (Define name Tu64 (Array t' sz (ArrayValue expr')), xs)
+  sz <- getArraySize size
+  (ArrayValue value, xs') <- getArr xs
+  if sz == 0
+    then pure (Define name Tu64 (Array t' (length value) (ArrayValue value)), xs')
+    else
+      if sz - length value < 0
+        then error "Array size is too small"
+        else
+          if sz - length value > 0
+            then pure (Define name Tu64 (Array t' sz (ArrayValue (value ++ replicate (sz - length value) (defaultValue t')))), xs')
+            else pure (Define name Tu64 (Array t' sz (ArrayValue value)), xs')
 getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : A (Symbol "=") : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
   t' <- getType t
   pure (Define name t' expr, xs')
 getDefine _ = Nothing
+
+getArr :: [Expr] -> Maybe (Ast, [Expr])
+getArr expr = do
+  let (expr', xs) = takeUntil (== A End) expr
+  arr <-
+    getArrayValue expr'
+      <|> (stringToArray =<< (\s -> Just (s ++ "\0")) =<< escape =<< getStrings expr')
+  pure (arr, xs)
+  where
+    stringToArray :: String -> Maybe Ast
+    stringToArray [] = pure (ArrayValue [])
+    stringToArray (c : cs) = do
+      ArrayValue arr <- stringToArray cs
+      pure (ArrayValue (Int (ord c) : arr))
+    escape :: String -> Maybe String
+    escape [] = pure []
+    escape ('\\' : 'n' : cs) = do
+      cs' <- escape cs
+      pure ('\n' : cs')
+    escape ('\\' : 't' : cs) = do
+      cs' <- escape cs
+      pure ('\t' : cs')
+    escape ('\\' : '\\' : cs) = do
+      cs' <- escape cs
+      pure ('\\' : cs')
+    escape ('\\' : '"' : cs) = do
+      cs' <- escape cs
+      pure ('"' : cs')
+    escape ('\\' : '0' : cs) = do
+      cs' <- escape cs
+      pure ('\0' : cs')
+    escape (c : cs) = do
+      cs' <- escape cs
+      pure (c : cs')
+
+getStrings :: [Expr] -> Maybe String
+getStrings [] = pure ""
+getStrings (A (String s) : xs) = do
+  s' <- getStrings xs
+  pure (s ++ s')
+getStrings _ = Nothing
+
+getArraySize :: [Expr] -> Maybe Int
+getArraySize [] = pure 0
+getArraySize [A (INumber n)] = pure n
+getArraySize _ = Nothing
 
 splitBySeparator :: (a -> Bool) -> [a] -> [[a]]
 splitBySeparator f as = case break f as of
