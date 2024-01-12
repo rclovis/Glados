@@ -31,5 +31,3 @@ funk putstrrev(str: u64): i32 {
 
 putstr(str);
 putstrrev(str);
-
-

@@ -28,16 +28,11 @@ module OpNumber
   )
 where
 
-import Control.Applicative (Alternative (..))
-import Control.Monad.State
 import Data.Bits
 import Data.Int
-import Data.Sequence as S
-import Data.Word
 import LexerVm
   ( Variable (..),
   )
-import System.Environment (getArgs)
 
 bTI8 :: Bool -> Int8
 bTI8 True = 1

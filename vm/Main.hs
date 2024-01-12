@@ -11,4 +11,4 @@ main = do
   let tokens = vmToken file
   case tokens of
     Nothing -> putStrLn "Nothing"
-    Just tokens -> mainTest tokens
+    Just tokenss -> mainTest tokenss
