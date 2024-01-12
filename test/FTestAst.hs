@@ -1,4 +1,4 @@
-module TestAst (astTestSuite) where
+module FTestAst (astTestSuite) where
 
 import Ast.Ast (Ast (..), genAst)
 import Ast.Expr (genExpr)

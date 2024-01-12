@@ -1,6 +1,6 @@
+import FTestAst (astTestSuite)
 import Test.HUnit
-import TestAst (astTestSuite)
-import TestParser (parserTestSuite)
+import UTestParser (parserTestSuite)
 
 main :: IO ()
 main = do
