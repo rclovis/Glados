@@ -14,7 +14,8 @@ astTestSuite =
     [ defineTestSuite,
       whileTestSuite,
       ifTestSuite,
-      arrayFeatureTestSuite
+      arrayFeatureTestSuite,
+      functionTestSuite
     ]
 
 -- -- Test Suites
@@ -73,6 +74,53 @@ arrayFeatureTestSuite =
   TestList
     [ vArrayAllFeature
     ]
+
+functionTestSuite :: Test
+functionTestSuite =
+  TestList
+    [ vFunctionCallNoArgs,
+      vFunctionCallOneArgs,
+      vFunctionCallTwoArgs,
+      vFunctionCallExpresion,
+      vFunctionCallInExpression
+    ]
+
+-- Function Tests
+------------------------------------------------------------------------
+vFunctionCallNoArgs :: Test
+vFunctionCallNoArgs = do
+  let input = "f();"
+  let expected = Just $ Call "f" []
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vFunctionCallNoArgs" expected actual)
+
+vFunctionCallOneArgs :: Test
+vFunctionCallOneArgs = do
+  let input = "f(10);"
+  let expected = Just $ Call "f" [Int 10]
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vFunctionCallOneArgs" expected actual)
+
+vFunctionCallTwoArgs :: Test
+vFunctionCallTwoArgs = do
+  let input = "f(10, 20);"
+  let expected = Just $ Call "f" [Int 10, Int 20]
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vFunctionCallTwoArgs" expected actual)
+
+vFunctionCallExpresion :: Test
+vFunctionCallExpresion = do
+  let input = "f(10 + 20);"
+  let expected = Just $ Call "f" [BinOp Add (Int 10) (Int 20)]
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vFunctionCallExpresion" expected actual)
+
+vFunctionCallInExpression :: Test
+vFunctionCallInExpression = do
+  let input = "a = f(10 - a * 20);"
+  let expected = Just $ Assign "a" (Call "f" [BinOp Sub (Int 10) (BinOp Mul (Id "a") (Int 20))])
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vFunctionCallInExpression" expected actual)
 
 -- Array Tests
 ------------------------------------------------------------------------
