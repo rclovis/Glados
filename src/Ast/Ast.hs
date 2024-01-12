@@ -66,7 +66,6 @@ getAst xs = do
       <|> case getValue [Parenthesis xs] of
         Nothing -> Nothing
         Just ast -> Just (ast, [])
-      <|> error ("Unknown syntax: " ++ show xs)
   case getAst expr of
     Nothing -> pure (ast, expr)
     Just (ys, zs) -> pure (Seq (ast : [ys]), zs)
@@ -84,9 +83,9 @@ getValue xs =
     <|> getArrayValue xs
     <|> getNumber xs
     <|> getIdentifier xs
-    <|> error ("Invalid Expression: " ++ show xs)
   where
     getCallFunk :: [Expr] -> Maybe Ast
+    getCallFunk [FuncCall name (Parenthesis [])] = pure (Call name [])
     getCallFunk [FuncCall name (Parenthesis args)] = do
       args' <- getValue $ reverse args
       pure (Call name [args'])
@@ -179,9 +178,11 @@ getIf (A Lexer.If : Parenthesis cond : Braces body : xs) = do
 getIf _ = Nothing
 
 getCall :: [Expr] -> Maybe (Ast, [Expr])
+getCall (FuncCall name (Parenthesis []) : A End : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : A End : xs) = do
   args' <- getValue args
   pure (Call name [args'], xs)
+getCall (FuncCall name (Parenthesis []) : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : xs) = do
   args' <- getValue args
   pure (Call name [args'], xs)
@@ -218,7 +219,7 @@ getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t)
     then pure (Define name Tu64 (Array t' (length value) (ArrayValue value)), xs')
     else
       if sz - length value < 0
-        then error "Array size is too small"
+        then Nothing
         else
           if sz - length value > 0
             then pure (Define name Tu64 (Array t' sz (ArrayValue (value ++ replicate (sz - length value) (defaultValue t')))), xs')

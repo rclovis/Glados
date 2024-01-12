@@ -1,5 +1,5 @@
 
-var a: i32[5] = [10, 20, 30, 43, 0];
+var str: u8[] = "Hello Bozo!";
 
 funk strlen(str: u64): i32 {
     var i: i32 = 0;
@@ -8,11 +8,28 @@ funk strlen(str: u64): i32 {
     }
     return i;
 }
-funk test (n: i64): i32 {
-    var a: i32[5] = [10, 20, 30];
-    a[2] = a[2] + 2;
-    return a[2];
+
+funk putstr(str: u64): i32 {
+    var size: i32 = strlen(str);
+    var i: i32 = 0;
+    while (i < size) {
+        write str[i];
+        i = i + 1;
+    }
+    return 0;
 }
-strlen(a);
-test(a[0]);
+
+funk putstrrev(str: u64): i32 {
+    var size: i32 = strlen(str);
+    var i: i32 = size - 1;
+    while (i >= 0) {
+        write str[i];
+        i = i - 1;
+    }
+    return 0;
+}
+
+putstr(str);
+putstrrev(str);
+
 

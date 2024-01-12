@@ -251,7 +251,7 @@ lenOfVar (U8 _) = 1
 lenOfVar (U16 _) = 2
 lenOfVar (U32 _) = 4
 lenOfVar (U64 _) = 8
-lenOfVar None = 0
+lenOfVar None = -1
 
 getAndWith :: (a -> b -> c) -> Get a -> Get b -> Get c
 getAndWith p0 p1 p2 = do
@@ -267,9 +267,6 @@ getMany p = do
       x <- p
       (x :) <$> getMany p
 
-getN :: Get ()
-getN = return ()
-
 getHeader :: Get ()
 getHeader = do
   a <- getWord32be
@@ -283,64 +280,63 @@ getHeader = do
 getCouple :: Get (Int, OpCode, Variable)
 getCouple = do
   opCode <- getInstruction
-  case opCode of
-    Funk -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Iload -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Fload -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Uload -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Istore -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Fstore -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Ustore -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Iconst -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Fconst -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableF
-    Uconst -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableU
-    Iadd -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fadd -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Isub -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fsub -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Imul -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fmul -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Idiv -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fdiv -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Irem -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ieq -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ine -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ilt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Igt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ile -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ige -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Feq -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fne -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Flt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fgt -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fle -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Fge -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ift -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Iff -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Goto -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Iand -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ior -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Ixor -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Invoke -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Return -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    I2f -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    F2i -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Pop -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Dup -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    PopPrev -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    IloadStack -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    FloadStack -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    UloadStack -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Not -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Iconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
-    Fconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
-    Uconvert -> getAndWith (\_ y -> (3, opCode, y)) getN getVariableI
-    Addr -> getAndWith (\_ y -> (lenOfVar y + 2, opCode, y)) getN getVariableI
-    Access -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Modify -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-    Write -> getAndWith (\_ y -> (1, opCode, y)) getN getVariableN
-
-
+  var <- case opCode of
+    Funk -> getVariableI
+    Iload -> getVariableI
+    Fload -> getVariableI
+    Uload -> getVariableI
+    Istore -> getVariableI
+    Fstore -> getVariableI
+    Ustore -> getVariableI
+    Iconst -> getVariableI
+    Fconst -> getVariableF
+    Uconst -> getVariableU
+    Iadd -> getVariableN
+    Fadd -> getVariableN
+    Isub -> getVariableN
+    Fsub -> getVariableN
+    Imul -> getVariableN
+    Fmul -> getVariableN
+    Idiv -> getVariableN
+    Fdiv -> getVariableN
+    Irem -> getVariableN
+    Ieq -> getVariableN
+    Ine -> getVariableN
+    Ilt -> getVariableN
+    Igt -> getVariableN
+    Ile -> getVariableN
+    Ige -> getVariableN
+    Feq -> getVariableN
+    Fne -> getVariableN
+    Flt -> getVariableN
+    Fgt -> getVariableN
+    Fle -> getVariableN
+    Fge -> getVariableN
+    Ift -> getVariableI
+    Iff -> getVariableI
+    Goto -> getVariableI
+    Iand -> getVariableN
+    Ior -> getVariableN
+    Ixor -> getVariableN
+    Invoke -> getVariableI
+    Return -> getVariableN
+    I2f -> getVariableN
+    F2i -> getVariableN
+    Pop -> getVariableI
+    Dup -> getVariableI
+    PopPrev -> getVariableI
+    IloadStack -> getVariableI
+    FloadStack -> getVariableI
+    UloadStack -> getVariableI
+    Not -> getVariableN
+    Iconvert -> getVariableI
+    Fconvert -> getVariableI
+    Uconvert -> getVariableI
+    Addr -> getVariableI
+    Access -> getVariableN
+    Modify -> getVariableN
+    Write -> getVariableN
+  return (lenOfVar var + 2, opCode, var)
 
 vmToken :: BL.ByteString -> Maybe [Instruction]
 vmToken s = case runGetOrFail (getAndWith (\_ y -> y) getHeader (getMany getCouple)) s of

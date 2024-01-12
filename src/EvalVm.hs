@@ -39,6 +39,7 @@ import OpNumber
     subI,
     xorI,
   )
+import Data.Char (chr)
 
 data Cpu = Cpu
   { ip :: Int, -- Instruction pointer
@@ -49,7 +50,8 @@ data Cpu = Cpu
     ranOp :: Int, -- The last opcode that was executed
     cpuState :: Int, -- The status of the program
     loop :: Int, -- The loop counter
-    heap :: S.Seq Variable -- The heap
+    heap :: S.Seq Variable, -- The heap
+    stdOut :: String
   }
   deriving (Show, Eq)
 
@@ -64,7 +66,8 @@ emptyCpu =
       ranOp = 0,
       cpuState = 0,
       loop = 0,
-      heap = S.empty
+      heap = S.empty,
+      stdOut = ""
     }
 
 newtype Operation a = Operation
@@ -198,6 +201,12 @@ operationLoadVar x = Operation $ do
       runOperation (operationPushStack i)
     _ -> return ()
 
+operationAddStdOut :: Variable -> Operation ()
+operationAddStdOut x = Operation $ do
+  cpu <- get
+  let c = chr (getIntegral x :: Int)
+  put cpu {stdOut = stdOut cpu ++ [c]}
+
 operationAddr :: Variable -> Operation ()
 operationAddr x = Operation $ do
   cpu <- get
@@ -284,108 +293,108 @@ exec (_, Fconst, v) _ = operationAddIp >> operationPushStack v
 exec (_, Uconst, v) _ = operationAddIp >> operationPushStack v
 exec (_, Iadd, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (addI a b)
 exec (_, Fadd, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (addF a b)
 exec (_, Isub, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (subI a b)
 exec (_, Fsub, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (subF a b)
 exec (_, Imul, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (mulI a b)
 exec (_, Fmul, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (mulF a b)
 exec (_, Idiv, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (divI a b)
 exec (_, Fdiv, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (divF a b)
 exec (_, Irem, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (modI a b)
 exec (_, Ieq, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (eqI a b)
 exec (_, Feq, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (eqF a b)
 exec (_, Ine, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (neI a b)
 exec (_, Fne, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (neF a b)
 exec (_, Ilt, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (ltI a b)
 exec (_, Flt, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (ltF a b)
 exec (_, Igt, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (gtI a b)
 exec (_, Fgt, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (gtF a b)
 exec (_, Ile, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (leI a b)
 exec (_, Fle, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (leF a b)
 exec (_, Ige, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (geI a b)
 exec (_, Fge, _) _ = do
   operationAddIp
-  a <- operationPopStack
   b <- operationPopStack
+  a <- operationPopStack
   operationPushStack (geF a b)
 exec (_, Ift, v) i = do
   a <- operationPopStack
@@ -499,9 +508,10 @@ exec (_, Modify, _) _ = do
   a <- operationPopStack
   b <- operationPopStack
   operationModify (getIntegral b) a
--- exec (_, Write, _) _ = do
---   operationAddIp
---   a <- operationPopStack
+exec (_, Write, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  operationAddStdOut a
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
@@ -510,6 +520,7 @@ execOp :: [Instruction] -> Operation ()
 execOp i = do
   cpu <- Operation get
   if ip cpu >= Prelude.length i
+  -- if loop cpu == 185
     then return ()
     else do
       exec (i !! ip cpu) i
@@ -519,5 +530,6 @@ execOp i = do
 mainTest :: [Instruction] -> IO ()
 mainTest i = do
   print i
+  putStrLn ""
   let cpu' = execState (runOperation (execOp i)) emptyCpu
   print cpu'
