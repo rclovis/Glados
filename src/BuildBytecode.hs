@@ -23,19 +23,19 @@ correspondingInt 1 x = Int8Val (fromIntegral x)
 correspondingInt 2 x = Int16Val (fromIntegral x)
 correspondingInt 4 x = Int32Val (fromIntegral x)
 correspondingInt 8 x = Int64Val (fromIntegral x)
-correspondingInt _ _ = error "zbi"
+correspondingInt _ _ = error "Int size not supported"
 
 correspondingWord :: Int -> Integer -> WordTypes
 correspondingWord 1 x = Word8Val (fromIntegral x)
 correspondingWord 2 x = Word16Val (fromIntegral x)
 correspondingWord 4 x = Word32Val (fromIntegral x)
 correspondingWord 8 x = Word64Val (fromIntegral x)
-correspondingWord _ _ = error "zbi"
+correspondingWord _ _ = error "Word size not supported"
 
 correspondingFloat :: Int -> Rational -> FloatingPoint
 correspondingFloat 4 x = FloatVal (fromRational x)
 correspondingFloat 8 x = DoubleVal (fromRational x)
-correspondingFloat _ _ = error "zbi"
+correspondingFloat _ _ = error "FLoat size not supported"
 
 minimumSizeI :: Int -> Int
 minimumSizeI x
@@ -48,7 +48,7 @@ minimumSizeI x
 
 minimumSizeU :: Int -> Int
 minimumSizeU x
-  | x < 0 = error "zbi"
+  | x < 0 = error "Wrong value"
   | x < 256 = 1
   | x < 65536 = 2
   | x < 4294967296 = 4
@@ -148,21 +148,21 @@ memoryGetFunk name ((nameFunk, args) :<| xs) = MemoryState $ do
     else runMemoryState (memoryGetFunk name xs)
 
 memoryGetFunkIndex :: String -> Seq (String, Seq (String, Type)) -> Int
-memoryGetFunkIndex _ S.Empty = error "Empty"
+memoryGetFunkIndex name S.Empty = error ("Unknow function : " ++ show name)
 memoryGetFunkIndex name ((nameFunk, _) :<| xs) =
   if name == nameFunk
     then 0
     else 1 + memoryGetFunkIndex name xs
 
 memoryGetVarIndex :: String -> Seq (String, Type) -> Int
-memoryGetVarIndex _ S.Empty = error "Empty"
+memoryGetVarIndex name S.Empty = error ("Undefined variable : " ++ show name)
 memoryGetVarIndex name ((nameVar, _) :<| xs) =
   if name == nameVar
     then 0
     else 1 + memoryGetVarIndex name xs
 
 memoryGetVar :: String -> Seq (String, Type) -> MemoryState (String, Type)
-memoryGetVar _ S.Empty = error "Empty"
+memoryGetVar name S.Empty = error ("Undefined variable : " ++ show name)
 memoryGetVar name ((nameVar, type_) :<| xs) =
   if name == nameVar
     then return (nameVar, type_)
@@ -391,7 +391,6 @@ getBinOp (BinOp op ast1 ast2) = MemoryState $ do
     Ge -> put stock {bytecode = bytecode stock |> Ige}
     Ast.Op.And -> put stock {bytecode = bytecode stock |> Iand}
     Or -> put stock {bytecode = bytecode stock |> Bytecode.Ior}
-    -- Not -> put stock {bytecode = bytecode stock |> Inot}
     _ -> error "not supported Binary Operator"
 getBinOp _ = return ()
 
@@ -436,7 +435,7 @@ getArrayValue (ArrayValue (a : as)) t = MemoryState $ do
     (Tu64, Int n) -> put stock {bytecode = bytecode stock |> Bytecode.Uconst 8 (correspondingWord 8 (toInteger n))}
     (Tf32, Float n) -> put stock {bytecode = bytecode stock |> Bytecode.Fconst 4 (correspondingFloat 4 (toRational n))}
     (Tf64, Float n) -> put stock {bytecode = bytecode stock |> Bytecode.Fconst 8 (correspondingFloat 8 (toRational n))}
-    _ -> error "zbi"
+    _ -> error "Unsupported type"
   runMemoryState (getArrayValue (ArrayValue as) t)
 getArrayValue _ _ = return ()
 
