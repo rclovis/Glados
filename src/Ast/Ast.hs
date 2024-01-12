@@ -152,18 +152,19 @@ getUnOp _ = Nothing
 
 getFunk :: [Expr] -> Maybe (Ast, [Expr])
 getFunk (A Funk : A (Identifier name) : Parenthesis args : A (Symbol ":") : A (Lexer.Type t) : Braces body : xs) = do
-  (args', []) <- getArgs args
+  args' <- case args of
+    [] -> pure []
+    _ -> mapM getArg (splitBySeparator (== A Comma) args)
   (body', []) <- getAst body
   type' <- getType t
   pure (Define name type' (Lambda args' body'), xs)
   where
-    getArgs :: [Expr] -> Maybe ([Arg], [Expr])
-    getArgs [] = pure ([], [])
-    getArgs (A (Identifier name') : A (Symbol ":") : A (Lexer.Type t') : zs) = do
+    getArg :: [Expr] -> Maybe Arg
+    getArg [] = Nothing
+    getArg [A (Identifier name'), A (Symbol ":"), A (Lexer.Type t')] = do
       t'' <- getType t'
-      (args', []) <- getArgs zs
-      pure ((name', t'') : args', [])
-    getArgs _ = Nothing
+      pure (name', t'')
+    getArg _ = Nothing
 getFunk _ = Nothing
 
 getIf :: [Expr] -> Maybe (Ast, [Expr])
@@ -181,12 +182,12 @@ getIf _ = Nothing
 getCall :: [Expr] -> Maybe (Ast, [Expr])
 getCall (FuncCall name (Parenthesis []) : A End : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : A End : xs) = do
-  args' <- getValue args
-  pure (Call name [args'], xs)
+  ArrayValue args' <- getArrayValue [Brackets args]
+  pure (Call name args', xs)
 getCall (FuncCall name (Parenthesis []) : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : xs) = do
-  args' <- getValue args
-  pure (Call name [args'], xs)
+  ArrayValue args' <- getArrayValue args
+  pure (Call name args', xs)
 getCall _ = Nothing
 
 getWhile :: [Expr] -> Maybe (Ast, [Expr])
