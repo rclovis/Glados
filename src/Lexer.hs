@@ -157,7 +157,7 @@ parseWrite :: Parser Token
 parseWrite = fmap (const Write) (parseString "write")
 
 parseMalloc :: Parser Token
-parseMalloc = fmap (const Malloc) (parseString "malloc")
+parseMalloc = fmap (const Malloc) (parseString "allocate")
 
 parseFree :: Parser Token
 parseFree = fmap (const Free) (parseString "free")

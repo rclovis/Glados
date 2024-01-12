@@ -22,6 +22,7 @@ type Size = Int
 
 data Ast
   = Seq [Ast]
+  | Allocate String Type Ast
   | Define String Type Ast
   | Assign String Ast
   | AssignArray String Ast Ast
@@ -29,6 +30,9 @@ data Ast
   | Call String [Ast]
   | Return Ast
   | Write Ast
+  | Malloc Ast
+  | Free Ast
+  | Exit Ast
   | If Ast Ast Ast
   | While Ast Ast
   | Break
@@ -61,8 +65,9 @@ getAst xs = do
       <|> getContinue xs
       <|> getDefine xs
       <|> getAssign xs
+      <|> getAllocation xs
       <|> getReturn xs
-      <|> getWrite xs
+      <|> getKeywordArg xs
       <|> case getValue [Parenthesis xs] of
         Nothing -> Nothing
         Just ast -> Just (ast, [])
@@ -70,6 +75,13 @@ getAst xs = do
     Nothing -> pure (ast, expr)
     Just (Seq ys, zs) -> pure (Seq (ast : ys), zs)
     Just (y, zs) -> pure (Seq [ast, y], zs)
+
+getAllocation :: [Expr] -> Maybe (Ast, [Expr])
+getAllocation (A Lexer.Malloc : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : A (Symbol "=") : xs) = do
+  (value, xs') <- getValueEnd xs
+  t' <- getType t
+  pure (Ast.Ast.Allocate name t' value, xs')
+getAllocation _ = Nothing
 
 getValue :: [Expr] -> Maybe Ast
 getValue xs =
@@ -312,12 +324,20 @@ getReturn (A (Identifier "return") : xs) = do
   pure (Return expr, xs')
 getReturn _ = Nothing
 
-getWrite :: [Expr] -> Maybe (Ast, [Expr])
-getWrite (A Lexer.Write : xs) = do
+getKeywordArg :: [Expr] -> Maybe (Ast, [Expr])
+getKeywordArg (A Lexer.Write : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
   pure (Ast.Ast.Write expr, xs')
-getWrite _ = Nothing
+getKeywordArg (A Lexer.Free : xs) = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (Ast.Ast.Free expr, xs')
+getKeywordArg (A Lexer.Exit : xs) = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (Ast.Ast.Exit expr, xs')
+getKeywordArg _ = Nothing
 
 getNumber :: [Expr] -> Maybe Ast
 getNumber [A (INumber n)] = pure (Int n)
