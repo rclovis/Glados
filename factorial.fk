@@ -22,7 +22,7 @@ funk putstr(str: u64): i32 {
 funk putstrrev(str: u64): i32 {
     var size: i32 = strlen(str);
     var i: i32 = size - 1;
-    while (i >= 0) {
+    while (i >= 100) {
         write str[i];
         i = i - 1;
     }

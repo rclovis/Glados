@@ -400,9 +400,12 @@ getWhile (While cond body) = MemoryState $ do
   stock <- get
   let save1 = S.length (bytecode stock)
   runMemoryState (getAll body)
+  stock1 <- get
+  goto <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock1)))
+  put stock1 {bytecode = S.take save1 (bytecode stock1) <> S.singleton (Goto 2 (correspondingInt 2 (toInteger (goto + 4)))) <> S.drop save1 (bytecode stock1)}
   runMemoryState (getAll cond)
   stock2 <- get
-  sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2)))
+  sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY (save1 + 1) (S.length (bytecode stock2)))
   put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode + 4)))}
 getWhile _ = return ()
 
