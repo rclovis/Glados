@@ -1,4 +1,4 @@
-module TestParser (parserTestSuite) where
+module UTestParser (parserTestSuite) where
 
 import Parser
   ( Parser (..),
