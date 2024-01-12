@@ -2,29 +2,7 @@ module Preprocessing
   ( preprocessing
   )
 where
-
-import Control.Applicative (Alternative (..))
 import Parser
-  ( Parser (..),
-    parseAndWith,
-    parseAnyChar,
-    parseAnyCharBut,
-    parseChar,
-    parseFloat,
-    parseInt,
-    parseList,
-    parseMany,
-    parseNothing,
-    parseOr,
-    parseQuantity,
-    parseSome,
-    parseString,
-    parseUFloat,
-    parseUInt,
-    runParser,
-    parseAnyCharUntil,
-  )
-import System.Environment (getArgs)
 
 data DependenceTree = DependenceTree
   { name :: String,

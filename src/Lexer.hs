@@ -9,23 +9,6 @@ where
 
 import Control.Applicative (Alternative (..))
 import Parser
-  ( Parser (..),
-    parseAndWith,
-    parseAnyChar,
-    parseChar,
-    parseFloat,
-    parseInt,
-    parseList,
-    parseMany,
-    parseNothing,
-    parseOr,
-    parseQuantity,
-    parseSome,
-    parseString,
-    parseUFloat,
-    parseUInt,
-    runParser,
-  )
 
 data TypeParsed
   = I8
@@ -77,6 +60,10 @@ data Token
   | Comma
   | End
   | Funk
+  | Write
+  | Malloc
+  | Free
+  | Exit
   | Operator OperatorParsed
   | Type TypeParsed
   | Identifier String
@@ -166,6 +153,18 @@ parseWhile = fmap (const While) (parseString "while")
 parseBreak :: Parser Token
 parseBreak = fmap (const Break) (parseString "break")
 
+parseWrite :: Parser Token
+parseWrite = fmap (const Write) (parseString "write")
+
+parseMalloc :: Parser Token
+parseMalloc = fmap (const Malloc) (parseString "malloc")
+
+parseFree :: Parser Token
+parseFree = fmap (const Free) (parseString "free")
+
+parseExit :: Parser Token
+parseExit = fmap (const Exit) (parseString "exit")
+
 parseComma :: Parser Token
 parseComma = fmap (const Comma) (parseChar ',')
 
@@ -197,10 +196,43 @@ parseBoolean :: Parser Token
 parseBoolean = fmap Boolean (parseOr (fmap (const True) (parseString "true")) (fmap (const False) (parseString "false")))
 
 parseComment :: Parser Token
-parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
+parseComment = do
+  _ <- parseString "//"
+  _ <- parseMany (parseAnyCharBut "\n")
+  _ <- parseChar '\n'
+  return Null
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseEnd <|> parseComma <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseContinue <|> parseIf <|> parseElse <|> parseVar <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parsefNumber <|> parseiNumber <|> parseOperator <|> parseBoolean  <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken =
+  parseComment
+    <|> parseEnd
+    <|> parseComma
+    <|> parseClosePar
+    <|> parseOpenPar
+    <|> parseCloseBracket
+    <|> parseOpenBracket
+    <|> parseCloseBrace
+    <|> parseOpenBrace
+    <|> parseWhile
+    <|> parseContinue
+    <|> parseIf
+    <|> parseElse
+    <|> parseVar
+    <|> parseFunk
+    <|> parseWrite
+    <|> parseMalloc
+    <|> parseFree
+    <|> parseExit
+    <|> parseBreak
+    <|> parseType
+    <|> parseIdentifier
+    <|> parsefNumber
+    <|> parseiNumber
+    <|> parseOperator
+    <|> parseBoolean
+    <|> parseStringLex
+    <|> parseSimpleSymbol
+    <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of

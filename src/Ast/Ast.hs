@@ -313,10 +313,10 @@ getReturn (A (Identifier "return") : xs) = do
 getReturn _ = Nothing
 
 getWrite :: [Expr] -> Maybe (Ast, [Expr])
-getWrite (A (Identifier "write") : xs) = do
+getWrite (A Lexer.Write : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
-  pure (Write expr, xs')
+  pure (Ast.Ast.Write expr, xs')
 getWrite _ = Nothing
 
 getNumber :: [Expr] -> Maybe Ast

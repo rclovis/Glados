@@ -532,4 +532,4 @@ mainTest i = do
   print i
   putStrLn ""
   let cpu' = execState (runOperation (execOp i)) emptyCpu
-  print cpu'
+  putStr (stdOut cpu')
