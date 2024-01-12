@@ -45,10 +45,11 @@ data Cpu = Cpu
     fp :: Int, -- Frame pointer
     cpuStack :: S.Seq Variable, -- The stack
     cpuFunk :: S.Seq Int, -- The function stack
-    cpuVar :: S.Seq (S.Seq Variable), -- Gloal variables
+    cpuVar :: S.Seq (S.Seq Variable), -- Variables
     ranOp :: Int, -- The last opcode that was executed
     cpuState :: Int, -- The status of the program
-    loop :: Int -- The loop counter
+    loop :: Int, -- The loop counter
+    heap :: S.Seq Variable -- The heap
   }
   deriving (Show, Eq)
 
@@ -62,7 +63,8 @@ emptyCpu =
       cpuVar = S.singleton S.empty,
       ranOp = 0,
       cpuState = 0,
-      loop = 0
+      loop = 0,
+      heap = S.empty
     }
 
 newtype Operation a = Operation
