@@ -80,17 +80,32 @@ replaceDefine = do
   after <- parseMany (parseAnyCharBut "")
   return (before ++ after)
 
+
+
 replaceOccurences :: [(String, String)] -> String -> String
 replaceOccurences [] s = s
 replaceOccurences xs s = do
-  let s' = runParser replaceDefine s
-  case s' of
-    Just (s'', _) -> foldr replaceOccurence s'' xs
-    Nothing -> error "Error: #define not found"
+  foldr replaceOccurence (replaceDefine2 xs s) xs
   where replaceOccurence (a, b) (x':xs') = case runParser (parseString a) (x':xs') of
           Just (_,xs'') -> b ++ replaceOccurence (a, b) xs''
           Nothing -> x' : replaceOccurence (a, b) xs'
         replaceOccurence _ [] = []
+
+        replaceDefine2 (_:xs') string = case runParser replaceDefine string of
+          Just (xs'',_) -> replaceDefine2 xs' xs''
+          Nothing -> replaceDefine2 xs' string
+        replaceDefine2 [] string = string
+-- replaceOccurences :: [(String, String)] -> String -> String
+-- replaceOccurences [] s = s
+-- replaceOccurences xs s = do
+--   let s' = runParser replaceDefine s
+--   case s' of
+--     Just (s'', _) -> foldr replaceOccurence s'' xs
+--     Nothing -> error "Error: #define not found"
+--   where replaceOccurence (a, b) (x':xs') = case runParser (parseString a) (x':xs') of
+--           Just (_,xs'') -> b ++ replaceOccurence (a, b) xs''
+--           Nothing -> x' : replaceOccurence (a, b) xs'
+--         replaceOccurence _ [] = []
 
 collapseDependenceTree :: DependenceTree -> String
 collapseDependenceTree (DependenceTree _ content1 []) = content1
