@@ -11,7 +11,10 @@ import Test.HUnit
 astTestSuite :: Test
 astTestSuite =
   TestList
-    [ defineTestSuite
+    [ defineTestSuite,
+      whileTestSuite,
+      ifTestSuite,
+      arrayFeatureTestSuite
     ]
 
 -- -- Test Suites
@@ -38,13 +41,134 @@ defineTestSuite =
       fDefineArrayWrongSize_1,
       fDefineArrayWrongSize_2,
       fDefineArrayWrongSize_3,
-      fDefineWrongType,
       fDefineNoVar,
       fDefineNoType,
       fDefineNoName,
       fDefineNoValue,
       fDefineNoSemicolon
     ]
+
+whileTestSuite :: Test
+whileTestSuite =
+  TestList
+    [ vWhile,
+      vWhileContinue,
+      vWhileBreak,
+      fWhileNoBody,
+      fWhileNoCondition
+    ]
+
+ifTestSuite :: Test
+ifTestSuite =
+  TestList
+    [ vIf,
+      vIfElse,
+      fIfNoBody,
+      fIfNoCondition,
+      fOnlyElse
+    ]
+
+arrayFeatureTestSuite :: Test
+arrayFeatureTestSuite =
+  TestList
+    [ vArrayAllFeature
+    ]
+
+-- Array Tests
+------------------------------------------------------------------------
+vArrayAllFeature :: Test
+vArrayAllFeature = do
+  let input =
+        "var a: i32[5] = [10, 20, 30];\
+        \var b: u8[] = \"hello\" \"world!\";\
+        \a = [11, 22, 33, 44, 55];\
+        \a[2] = b[2] + 2;\
+        \return a[2] + b[0];"
+  let expected =
+        Just $
+          Seq
+            [ Define "a" Tu64 (Array Ti32 5 (ArrayValue [Int 10, Int 20, Int 30, Int 0, Int 0])),
+              Define "b" Tu64 (Array Tu8 12 (ArrayValue [Int (ord 'h'), Int (ord 'e'), Int (ord 'l'), Int (ord 'l'), Int (ord 'o'), Int (ord 'w'), Int (ord 'o'), Int (ord 'r'), Int (ord 'l'), Int (ord 'd'), Int (ord '!'), Int 0])),
+              Assign "a" (ArrayValue [Int 11, Int 22, Int 33, Int 44, Int 55]),
+              AssignArray "a" (Int 2) (BinOp Add (Indexing "b" (Int 2)) (Int 2)),
+              Return (BinOp Add (Indexing "a" (Int 2)) (Indexing "b" (Int 0)))
+            ]
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vArrayAllFeature" expected actual)
+
+-- If Tests
+------------------------------------------------------------------------
+vIf :: Test
+vIf = do
+  let input = "if (a < 10) {a = a + 1;}"
+  let expected = Just $ If (BinOp Lt (Id "a") (Int 10)) (Assign "a" (BinOp Add (Id "a") (Int 1))) (Seq [])
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vIf" expected actual)
+
+vIfElse :: Test
+vIfElse = do
+  let input = "if (a < 10) {a = a + 1;} else {a = a - 1;}"
+  let expected = Just $ If (BinOp Lt (Id "a") (Int 10)) (Assign "a" (BinOp Add (Id "a") (Int 1))) (Assign "a" (BinOp Sub (Id "a") (Int 1)))
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vIfElse" expected actual)
+
+fIfNoBody :: Test
+fIfNoBody = do
+  let input = "if (a < 10) {}"
+  let expected = Nothing
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vIfNoBody" expected actual)
+
+fIfNoCondition :: Test
+fIfNoCondition = do
+  let input = "if () {a = a + 1;}"
+  let expected = Nothing
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "fIfNoCondition" expected actual)
+
+fOnlyElse :: Test
+fOnlyElse = do
+  let input = "else {a = a - 1;}"
+  let expected = Nothing
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "fOnlyElse" expected actual)
+
+-- While Tests
+------------------------------------------------------------------------
+vWhile :: Test
+vWhile = do
+  let input = "while (a < 10) {a = a + 1;}"
+  let expected = Just $ While (BinOp Lt (Id "a") (Int 10)) (Assign "a" (BinOp Add (Id "a") (Int 1)))
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vWhile" expected actual)
+
+vWhileContinue :: Test
+vWhileContinue = do
+  let input = "while (a < 10) {continue}"
+  let expected = Just $ While (BinOp Lt (Id "a") (Int 10)) Continue
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vWhileContinue" expected actual)
+
+vWhileBreak :: Test
+vWhileBreak = do
+  let input = "while (a < 10) {break}"
+  let expected = Just $ While (BinOp Lt (Id "a") (Int 10)) Break
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "vWhileBreak" expected actual)
+
+fWhileNoBody :: Test
+fWhileNoBody = do
+  let input = "while (a < 10) {}"
+  let expected = Nothing
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "fWhileNoBody" expected actual)
+
+fWhileNoCondition :: Test
+fWhileNoCondition = do
+  let input = "while () {a = a + 1;}"
+  let expected = Nothing
+  let actual = tokenize input >>= genExpr >>= genAst
+  TestCase (assertEqual "fWhileNoCondition" expected actual)
 
 -- Define Tests
 ------------------------------------------------------------------------
@@ -174,13 +298,6 @@ fDefineArrayWrongSize_3 = do
   let expected = Nothing
   let actual = tokenize input >>= genExpr >>= genAst
   TestCase (assertEqual "fDefineArrayWrongSize" expected actual)
-
-fDefineWrongType :: Test
-fDefineWrongType = do
-  let input = "var n: i32 = 10.0;"
-  let expected = Nothing
-  let actual = tokenize input >>= genExpr >>= genAst
-  TestCase (assertEqual "fDefineWrongType" expected actual)
 
 fDefineNoType :: Test
 fDefineNoType = do

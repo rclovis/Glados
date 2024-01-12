@@ -68,7 +68,8 @@ getAst xs = do
         Just ast -> Just (ast, [])
   case getAst expr of
     Nothing -> pure (ast, expr)
-    Just (ys, zs) -> pure (Seq (ast : [ys]), zs)
+    Just (Seq ys, zs) -> pure (Seq (ast : ys), zs)
+    Just (y, zs) -> pure (Seq [ast, y], zs)
 
 getValue :: [Expr] -> Maybe Ast
 getValue xs =
