@@ -6,9 +6,9 @@ import qualified Data.ByteString.Lazy as BL
 
 main :: IO ()
 main = do
-  fileNames <- getArgs
-  file <- BL.readFile (head fileNames)
+  args <- getArgs
+  file <- BL.readFile (head args)
   let tokens = vmToken file
   case tokens of
     Nothing -> putStrLn "Nothing"
-    Just tokenss -> mainTest tokenss
+    Just tokenss -> mainTest tokenss args

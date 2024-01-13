@@ -53,7 +53,8 @@ data Cpu = Cpu
     loop :: Int, -- The loop counter
     heap :: S.Seq Variable, -- The heap
     stdOut :: String,
-    exitCode :: Int
+    exitCode :: Int,
+    args :: S.Seq Variable
   }
   deriving (Show, Eq)
 
@@ -70,7 +71,8 @@ emptyCpu =
       loop = 0,
       heap = S.empty,
       stdOut = "",
-      exitCode = 0
+      exitCode = 0,
+      args = S.empty
     }
 
 newtype Operation a = Operation
@@ -542,10 +544,26 @@ execOp i = do
       operationAddLoop
       execOp i
 
-mainTest :: [Instruction] -> IO ()
-mainTest i = do
+execArgs :: [String] -> Operation ()
+execArgs [] = return ()
+execArgs (x:xs) = Operation $ do
+  cpu <- get
+  put cpu {args = U64 (fromIntegral (S.length (cpuStack cpu))) <| args cpu}
+  runOperation (pushArgs x)
+  runOperation (execArgs xs)
+  where
+    pushArgs :: String -> Operation ()
+    pushArgs [] = return ()
+    pushArgs (x':xs') = Operation $ do
+      cpu <- get
+      put cpu {cpuStack = U8 (fromIntegral (fromEnum x')) <| cpuStack cpu}
+      runOperation (pushArgs xs')
+
+mainTest :: [Instruction] -> [String] -> IO ()
+mainTest i args' = do
   print i
   putStrLn ""
-  let cpu' = execState (runOperation (execOp i)) emptyCpu
+  let cpu = execState (runOperation (execArgs args')) emptyCpu
+  let cpu' = execState (runOperation (execOp i)) cpu
   putStr (stdOut cpu')
   exitWith (if exitCode cpu' == 0 then ExitSuccess else ExitFailure (exitCode cpu'))

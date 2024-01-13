@@ -15,7 +15,6 @@ main :: IO ()
 main = do
   fileNames <- getArgs
   file <- preprocessing fileNames
-  putStr file
   let ast = do
         tokens <- tokenize file
         expr <- genExpr tokens
