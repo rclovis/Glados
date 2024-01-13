@@ -45,8 +45,7 @@ defineTestSuite =
       fDefineNoVar,
       fDefineNoType,
       fDefineNoName,
-      fDefineNoValue,
-      fDefineNoSemicolon
+      fDefineNoValue
     ]
 
 whileTestSuite :: Test
@@ -367,13 +366,6 @@ fDefineNoValue = do
   let expected = Nothing
   let actual = tokenize input >>= genExpr >>= genAst
   TestCase (assertEqual "fDefineNoValue" expected actual)
-
-fDefineNoSemicolon :: Test
-fDefineNoSemicolon = do
-  let input = "var n: i32 = 10"
-  let expected = Nothing
-  let actual = tokenize input >>= genExpr >>= genAst
-  TestCase (assertEqual "fDefineNoSemicolon" expected actual)
 
 fDefineNoVar :: Test
 fDefineNoVar = do

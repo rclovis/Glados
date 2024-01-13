@@ -40,6 +40,7 @@ import OpNumber
     xorI,
   )
 import Data.Char (chr)
+import System.Exit
 
 data Cpu = Cpu
   { ip :: Int, -- Instruction pointer
@@ -51,7 +52,9 @@ data Cpu = Cpu
     cpuState :: Int, -- The status of the program
     loop :: Int, -- The loop counter
     heap :: S.Seq Variable, -- The heap
-    stdOut :: String
+    stdOut :: String,
+    exitCode :: Int,
+    args :: S.Seq Variable
   }
   deriving (Show, Eq)
 
@@ -67,7 +70,9 @@ emptyCpu =
       cpuState = 0,
       loop = 0,
       heap = S.empty,
-      stdOut = ""
+      stdOut = "",
+      exitCode = 0,
+      args = S.empty
     }
 
 newtype Operation a = Operation
@@ -121,6 +126,11 @@ operationSetIp :: Int -> Operation ()
 operationSetIp x = Operation $ do
   cpu <- get
   put cpu {ip = x}
+
+operationSetExitCode :: Int -> Operation ()
+operationSetExitCode x = Operation $ do
+  cpu <- get
+  put cpu {exitCode = x}
 
 operationAddLoop :: Operation ()
 operationAddLoop = Operation $ do
@@ -431,20 +441,27 @@ exec (_, Invoke, v) _ = do
   operationSetIp (S.index (cpuFunk cpu) (S.length (cpuFunk cpu) - 1 - getIntegral v))
   operationAddIp
   operationPushVariableScope
-exec (_, Return, _) _ = do
+exec (_, Return, _) i = do
   cpu <- Operation get
-  ipt <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
-  fpt <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
-  operationRepeatOp (S.length (cpuStack cpu) - 1 - fp cpu - 2 - 1) popStack
-  operationSetFp (getIntegral fpt)
-  operationSetIp (getIntegral ipt)
-  operationPopVariableScope
-    where
-      popStack :: Operation ()
-      popStack = do
-        cpu <- Operation get
-        _ <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
-        return ()
+  if fp cpu == -1
+    then do
+      a <- operationPopStack
+      operationSetIp (Prelude.length i)
+      operationSetExitCode (getIntegral a :: Int)
+      return ()
+    else do
+      ipt <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
+      fpt <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
+      operationRepeatOp (S.length (cpuStack cpu) - 1 - fp cpu - 2 - 1) popStack
+      operationSetFp (getIntegral fpt)
+      operationSetIp (getIntegral ipt)
+      operationPopVariableScope
+        where
+          popStack :: Operation ()
+          popStack = do
+            cpu <- Operation get
+            _ <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
+            return ()
 exec (_, Pop, v) _ = do
   operationAddIp
   operationRepeatOp (getIntegral v) operationPopStackDiscard
@@ -527,9 +544,26 @@ execOp i = do
       operationAddLoop
       execOp i
 
-mainTest :: [Instruction] -> IO ()
-mainTest i = do
+execArgs :: [String] -> Operation ()
+execArgs [] = return ()
+execArgs (x:xs) = Operation $ do
+  cpu <- get
+  put cpu {args = U64 (fromIntegral (S.length (cpuStack cpu))) <| args cpu}
+  runOperation (pushArgs x)
+  runOperation (execArgs xs)
+  where
+    pushArgs :: String -> Operation ()
+    pushArgs [] = return ()
+    pushArgs (x':xs') = Operation $ do
+      cpu <- get
+      put cpu {cpuStack = U8 (fromIntegral (fromEnum x')) <| cpuStack cpu}
+      runOperation (pushArgs xs')
+
+mainTest :: [Instruction] -> [String] -> IO ()
+mainTest i args' = do
   -- print i
   -- putStrLn ""
-  let cpu' = execState (runOperation (execOp i)) emptyCpu
+  let cpu = execState (runOperation (execArgs args')) emptyCpu
+  let cpu' = execState (runOperation (execOp i)) cpu
   putStr (stdOut cpu')
+  exitWith (if exitCode cpu' == 0 then ExitSuccess else ExitFailure (exitCode cpu'))
