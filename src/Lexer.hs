@@ -57,6 +57,7 @@ data Token
   | Else
   | While
   | Break
+  | GetArg
   | Comma
   | End
   | Funk
@@ -159,6 +160,9 @@ parseWrite = fmap (const Write) (parseString "write")
 parseMalloc :: Parser Token
 parseMalloc = fmap (const Malloc) (parseString "allocate")
 
+parseGetArg :: Parser Token
+parseGetArg = fmap (const GetArg) (parseString "getarg")
+
 parseFree :: Parser Token
 parseFree = fmap (const Free) (parseString "free")
 
@@ -219,6 +223,7 @@ parseToken =
     <|> parseElse
     <|> parseVar
     <|> parseFunk
+    <|> parseGetArg
     <|> parseWrite
     <|> parseMalloc
     <|> parseFree

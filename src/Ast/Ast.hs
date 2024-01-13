@@ -100,8 +100,8 @@ getValue xs =
     getCallFunk :: [Expr] -> Maybe Ast
     getCallFunk [FuncCall name (Parenthesis [])] = pure (Call name [])
     getCallFunk [FuncCall name (Parenthesis args)] = do
-      args' <- getValue $ reverse args
-      pure (Call name [args'])
+      ArrayValue args' <- getArrayValue [Brackets args]
+      pure (Call name args')
     getCallFunk _ = Nothing
 
 getBinOp :: (Expr -> Bool) -> [Expr] -> Maybe Ast
