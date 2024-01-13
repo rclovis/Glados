@@ -147,6 +147,12 @@ operationExtendHeap sizeToAdd = Operation $ do
   let newHeap = S.replicate sizeToAdd None
   put cpu {heap = newHeap <> heap cpu}
 
+operationGetArg :: Int -> Operation ()
+operationGetArg x = Operation $ do
+  cpu <- get
+  let arg = args cpu `S.index` (S.length (args cpu) - 1 - x)
+  runOperation (operationPushStack arg)
+
 operationAddDirectory :: Int -> Int -> Operation ()
 operationAddDirectory x y = Operation $ do
   cpu <- get
@@ -587,6 +593,10 @@ exec (_, Allocate, _) _ = do
   operationAddIp
   a <- operationPopStack
   operationGetHeap (getIntegral a)
+exec (_, GetArg, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  operationGetArg (getIntegral a)
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
@@ -611,7 +621,10 @@ execArgs (x:xs) = Operation $ do
   runOperation (execArgs xs)
   where
     pushArgs :: String -> Operation ()
-    pushArgs [] = return ()
+    pushArgs [] = Operation $ do
+      cpu <- get
+      put cpu {cpuStack = U8 0 <| cpuStack cpu}
+      return ()
     pushArgs (x':xs') = Operation $ do
       cpu <- get
       put cpu {cpuStack = U8 (fromIntegral (fromEnum x')) <| cpuStack cpu}
@@ -619,9 +632,9 @@ execArgs (x:xs) = Operation $ do
 
 mainTest :: [Instruction] -> [String] -> IO ()
 mainTest i args' = do
-  print i
-  putStrLn ""
+  -- print i
+  -- putStrLn ""
   let cpu = execState (runOperation (execArgs args')) emptyCpu
   let cpu' = execState (runOperation (execOp i)) cpu
-  putStr (show cpu')
+  putStr (stdOut cpu')
   exitWith (if exitCode cpu' == 0 then ExitSuccess else ExitFailure (exitCode cpu'))

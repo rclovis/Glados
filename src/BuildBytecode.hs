@@ -447,6 +447,10 @@ getArray (Array types sizes arrayVal) = MemoryState $ do
 getArray _ = return ()
 
 getIndexing :: Ast -> MemoryState ()
+getIndexing (Indexing "_argv" ast) = MemoryState $ do
+  runMemoryState (getAll ast)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Bytecode.GetArg}
 getIndexing (Indexing name ast) = MemoryState $ do
   runMemoryState (getAll ast)
   stock <- get
