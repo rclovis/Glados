@@ -472,6 +472,16 @@ getWrite (Ast.Ast.Write ast) = MemoryState $ do
   put stock {bytecode = bytecode stock |> Bytecode.Write}
 getWrite _ = return ()
 
+getAllocate :: Ast -> MemoryState ()
+getAllocate (Ast.Ast.Allocate name t ast) = MemoryState $ do
+  runMemoryState (memoryPushVar name t)
+  runMemoryState (getAll ast)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Bytecode.Allocate}
+  stock2 <- get
+  put stock2 {bytecode = bytecode stock2 |> Ustore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock2) 0))))}
+getAllocate _ = return ()
+
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
@@ -505,6 +515,8 @@ getAll (AssignArray str ast1 ast2) = MemoryState $ do
   runMemoryState (getAssignArray (AssignArray str ast1 ast2))
 getAll (Ast.Ast.Write ast) = MemoryState $ do
   runMemoryState (getWrite (Ast.Ast.Write ast))
+getAll (Ast.Ast.Allocate name t ast) = MemoryState $ do
+  runMemoryState (getAllocate (Ast.Ast.Allocate name t ast))
 getAll _ = return ()
 
 bcSecToList :: S.Seq Bytecode -> [Bytecode]

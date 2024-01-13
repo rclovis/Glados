@@ -81,6 +81,7 @@ data Bytecode
   | Access
   | Modify
   | Write
+  | Allocate
   deriving (Show, Eq)
 
 intTypesTo8bit :: IntTypes -> [Word8]
@@ -280,6 +281,7 @@ toBin (Addr a b) = [51, a] ++ wordTypesTo8bit b
 toBin Access = [52]
 toBin Modify = [53]
 toBin Write = [54]
+toBin Allocate = [55]
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
@@ -340,6 +342,7 @@ toHumanReadable (Addr _ b) = "  Addr " ++ show b ++ "\n"
 toHumanReadable Access = "  Access\n"
 toHumanReadable Modify = "  Modify\n"
 toHumanReadable Write = "  Write\n"
+toHumanReadable Allocate = "  Allocate\n"
 
 bytecode :: [Bytecode]
 bytecode =
@@ -419,3 +422,4 @@ getSizeBytecode (Addr x _) = fromIntegral x + 2
 getSizeBytecode Access = 1
 getSizeBytecode Modify = 1
 getSizeBytecode Write = 1
+getSizeBytecode Allocate = 1

@@ -561,8 +561,8 @@ execArgs (x:xs) = Operation $ do
 
 mainTest :: [Instruction] -> [String] -> IO ()
 mainTest i args' = do
-  -- print i
-  -- putStrLn ""
+  print i
+  putStrLn ""
   let cpu = execState (runOperation (execArgs args')) emptyCpu
   let cpu' = execState (runOperation (execOp i)) cpu
   putStr (stdOut cpu')

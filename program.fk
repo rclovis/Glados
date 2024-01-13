@@ -1,0 +1,13 @@
+#include "funkylib.fk"
+
+funk strdup(str: u64): u64 {
+  var str: u8[] = "Hello!";
+  allocate copy: u8 = strlen(str) + 1;
+  var i: i32 = 0;
+  while (str[i] != 0) {
+    copy[i] = str[i];
+    i = i + 1;
+  }
+  copy[i] = 0;
+  return copy;
+}
