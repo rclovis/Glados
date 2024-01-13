@@ -88,7 +88,7 @@ data Variable
   | None
   deriving (Show, Eq)
 
-type Instruction = (Int, OpCode, Variable)
+type Instruction = (OpCode, Variable)
 
 getWord8Value :: Word8 -> Get ()
 getWord8Value exValue = do
@@ -246,19 +246,6 @@ getVariableU = do
 getVariableN :: Get Variable
 getVariableN = return None
 
-lenOfVar :: Variable -> Int
-lenOfVar (I8 _) = 1
-lenOfVar (I16 _) = 2
-lenOfVar (I32 _) = 4
-lenOfVar (I64 _) = 8
-lenOfVar (F32 _) = 4
-lenOfVar (F64 _) = 8
-lenOfVar (U8 _) = 1
-lenOfVar (U16 _) = 2
-lenOfVar (U32 _) = 4
-lenOfVar (U64 _) = 8
-lenOfVar None = -1
-
 getAndWith :: (a -> b -> c) -> Get a -> Get b -> Get c
 getAndWith p0 p1 p2 = do
   a <- p1
@@ -283,7 +270,7 @@ getHeader = do
       return ()
 
 
-getCouple :: Get (Int, OpCode, Variable)
+getCouple :: Get (OpCode, Variable)
 getCouple = do
   opCode <- getInstruction
   var <- case opCode of
@@ -344,7 +331,7 @@ getCouple = do
     Write -> getVariableN
     Allocate -> getVariableN
     GetArg -> getVariableN
-  return (lenOfVar var + 2, opCode, var)
+  return (opCode, var)
 
 vmToken :: BL.ByteString -> Maybe [Instruction]
 vmToken s = case runGetOrFail (getAndWith (\_ y -> y) getHeader (getMany getCouple)) s of

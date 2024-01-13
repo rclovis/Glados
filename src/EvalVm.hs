@@ -56,6 +56,7 @@ data Cpu = Cpu
     directory :: S.Seq (Int, Int), -- The directory (heap pointer, size)
     stdOut :: String,
     exitCode :: Int,
+    instructions :: S.Seq Instruction,
     args :: S.Seq Variable
   }
   deriving (Show, Eq)
@@ -75,6 +76,7 @@ emptyCpu =
       directory = S.empty,
       stdOut = "",
       exitCode = 0,
+      instructions = S.empty,
       args = S.empty
     }
 
@@ -260,6 +262,11 @@ operationLoadVar x = Operation $ do
       runOperation (operationPushStack i)
     _ -> return ()
 
+operationSetInstruction :: S.Seq Instruction -> Operation ()
+operationSetInstruction x = Operation $ do
+  cpu <- get
+  put cpu {instructions = x}
+
 operationAddStdOut :: Variable -> Operation ()
 operationAddStdOut x = Operation $ do
   cpu <- get
@@ -303,23 +310,10 @@ operationRepeatOp x op = do
   op
   operationRepeatOp (x - 1) op
 
-operationJump :: (Integral a) => a -> [Instruction] -> Operation ()
-operationJump 0 _ = return ()
-operationJump x i = Operation $ do
+operationJump :: (Integral a) => a -> Operation ()
+operationJump x = Operation $ do
   cpu <- get
-  if x < 0
-    then do
-      let (l, _, _) = i !! ip cpu
-      if (fromIntegral x + l) /= 0
-        then do
-          put cpu {ip = ip cpu - 1}
-          runOperation $ operationJump (fromIntegral x + l) i
-        else runOperation $ operationJump (fromIntegral x + l) i
-    else do
-      let (l, _, _) = i !! ip cpu
-      put cpu {ip = ip cpu + 1}
-      runOperation $ operationJump (fromIntegral x - l) i
-  return ()
+  runOperation (operationSetIp (ip cpu + fromIntegral x + if x < 0 then 1 else 0))
 
 operationPushVariableScope :: Operation ()
 operationPushVariableScope = Operation $ do
@@ -347,152 +341,152 @@ getFloating (F32 x) = realToFrac x
 getFloating (F64 x) = realToFrac x
 getFloating _ = 0
 
-exec :: Instruction -> [Instruction] -> Operation ()
-exec (_, Funk, v) i = do
+exec :: Instruction -> Operation ()
+exec (Funk, v) = do
   cpu <- Operation get
   operationPushFunk (ip cpu)
-  operationJump (getIntegral v :: Int) i
-exec (_, Iload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
-exec (_, Fload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
-exec (_, Uload, v) _ = operationAddIp >> operationLoadVar (getIntegral v)
-exec (_, Istore, v) _ = operationAddIp >> operationStoreVar (getIntegral v)
-exec (_, Fstore, v) _ = operationAddIp >> operationStoreVar (getIntegral v)
-exec (_, Ustore, v) _ = operationAddIp >> operationStoreVar (getIntegral v)
-exec (_, Iconst, v) _ = operationAddIp >> operationPushStack v
-exec (_, Fconst, v) _ = operationAddIp >> operationPushStack v
-exec (_, Uconst, v) _ = operationAddIp >> operationPushStack v
-exec (_, Iadd, _) _ = do
+  operationJump (getIntegral v :: Int)
+exec (Iload, v) = operationAddIp >> operationLoadVar (getIntegral v)
+exec (Fload, v) = operationAddIp >> operationLoadVar (getIntegral v)
+exec (Uload, v) = operationAddIp >> operationLoadVar (getIntegral v)
+exec (Istore, v) = operationAddIp >> operationStoreVar (getIntegral v)
+exec (Fstore, v) = operationAddIp >> operationStoreVar (getIntegral v)
+exec (Ustore, v) = operationAddIp >> operationStoreVar (getIntegral v)
+exec (Iconst, v) = operationAddIp >> operationPushStack v
+exec (Fconst, v) = operationAddIp >> operationPushStack v
+exec (Uconst, v) = operationAddIp >> operationPushStack v
+exec (Iadd, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (addI a b)
-exec (_, Fadd, _) _ = do
+exec (Fadd, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (addF a b)
-exec (_, Isub, _) _ = do
+exec (Isub, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (subI a b)
-exec (_, Fsub, _) _ = do
+exec (Fsub, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (subF a b)
-exec (_, Imul, _) _ = do
+exec (Imul, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (mulI a b)
-exec (_, Fmul, _) _ = do
+exec (Fmul, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (mulF a b)
-exec (_, Idiv, _) _ = do
+exec (Idiv, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (divI a b)
-exec (_, Fdiv, _) _ = do
+exec (Fdiv, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (divF a b)
-exec (_, Irem, _) _ = do
+exec (Irem, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (modI a b)
-exec (_, Ieq, _) _ = do
+exec (Ieq, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (eqI a b)
-exec (_, Feq, _) _ = do
+exec (Feq, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (eqF a b)
-exec (_, Ine, _) _ = do
+exec (Ine, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (neI a b)
-exec (_, Fne, _) _ = do
+exec (Fne, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (neF a b)
-exec (_, Ilt, _) _ = do
+exec (Ilt, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (ltI a b)
-exec (_, Flt, _) _ = do
+exec (Flt, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (ltF a b)
-exec (_, Igt, _) _ = do
+exec (Igt, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (gtI a b)
-exec (_, Fgt, _) _ = do
+exec (Fgt, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (gtF a b)
-exec (_, Ile, _) _ = do
+exec (Ile, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (leI a b)
-exec (_, Fle, _) _ = do
+exec (Fle, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (leF a b)
-exec (_, Ige, _) _ = do
+exec (Ige, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (geI a b)
-exec (_, Fge, _) _ = do
+exec (Fge, _) = do
   operationAddIp
   b <- operationPopStack
   a <- operationPopStack
   operationPushStack (geF a b)
-exec (_, Ift, v) i = do
+exec (Ift, v) = do
   a <- operationPopStack
   if (getIntegral a :: Int) == 1
-    then operationJump (getIntegral v :: Int) i
+    then operationJump (getIntegral v :: Int)
     else operationAddIp
-exec (_, Iff, v) i = do
+exec (Iff, v) = do
   a <- operationPopStack
   if (getIntegral a :: Int) == 1
     then operationAddIp
-    else operationJump (getIntegral v :: Int) i
-exec (_, Goto, v) i = operationJump (getIntegral v :: Int) i
-exec (_, Iand, _) _ = do
+    else operationJump (getIntegral v :: Int)
+exec (Goto, v) = operationJump (getIntegral v :: Int)
+exec (Iand, _) = do
   operationAddIp
   a <- operationPopStack
   b <- operationPopStack
   operationPushStack (andI a b)
-exec (_, Ior, _) _ = do
+exec (Ior, _) = do
   operationAddIp
   a <- operationPopStack
   b <- operationPopStack
   operationPushStack (orI a b)
-exec (_, Ixor, _) _ = do
+exec (Ixor, _) = do
   operationAddIp
   a <- operationPopStack
   b <- operationPopStack
   operationPushStack (xorI a b)
-exec (_, Invoke, v) _ = do
+exec (Invoke, v) = do
   cpu <- Operation get
   operationAddIp
   operationPushStack (I64 (fromIntegral (fp cpu)))
@@ -501,12 +495,12 @@ exec (_, Invoke, v) _ = do
   operationSetIp (S.index (cpuFunk cpu) (S.length (cpuFunk cpu) - 1 - getIntegral v))
   operationAddIp
   operationPushVariableScope
-exec (_, Return, _) i = do
+exec (Return, _) = do
   cpu <- Operation get
   if fp cpu == -1
     then do
       a <- operationPopStack
-      operationSetIp (Prelude.length i)
+      operationSetIp (S.length (instructions cpu))
       operationSetExitCode (getIntegral a :: Int)
       return ()
     else do
@@ -522,31 +516,31 @@ exec (_, Return, _) i = do
             cpu <- Operation get
             _ <- operationPopStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - 2)
             return ()
-exec (_, Pop, v) _ = do
+exec (Pop, v) = do
   operationAddIp
   operationRepeatOp (getIntegral v) operationPopStackDiscard
   return ()
-exec (_, PopPrev, v) _ = do
+exec (PopPrev, v) = do
   operationAddIp
   a <- operationPopStack
   operationRepeatOp (getIntegral v) operationPopStackDiscard
   operationPushStack a
-exec (_, IloadStack, v) _ = do
+exec (IloadStack, v) = do
   cpu <- Operation get
   operationAddIp
   a <- operationGetStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - getIntegral v)
   operationPushStack a
-exec (_, FloadStack, v) _ = do
+exec (FloadStack, v) = do
   cpu <- Operation get
   operationAddIp
   a <- operationGetStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - getIntegral v)
   operationPushStack a
-exec (_, UloadStack, v) _ = do
+exec (UloadStack, v) = do
   cpu <- Operation get
   operationAddIp
   a <- operationGetStackIndex (S.length (cpuStack cpu) - 1 - fp cpu - getIntegral v)
   operationPushStack a
-exec (_, Iconvert, v) _ = do
+exec (Iconvert, v) = do
   operationAddIp
   a <- operationPopStack
   case getIntegral v :: Int of
@@ -555,7 +549,7 @@ exec (_, Iconvert, v) _ = do
     4 -> operationPushStack (I32 (getIntegral a))
     8 -> operationPushStack (I64 (getIntegral a))
     _ -> operationPushStack (I64 (getIntegral a))
-exec (_, Fconvert, v) _ = do
+exec (Fconvert, v) = do
   operationAddIp
   a <- operationPopStack
   case getIntegral v :: Int of
@@ -564,7 +558,7 @@ exec (_, Fconvert, v) _ = do
     4 -> operationPushStack (F32 (getFloating a))
     8 -> operationPushStack (F64 (getFloating a))
     _ -> operationPushStack (F64 (getFloating a))
-exec (_, Uconvert, v) _ = do
+exec (Uconvert, v) = do
   operationAddIp
   a <- operationPopStack
   case getIntegral v :: Int of
@@ -573,44 +567,44 @@ exec (_, Uconvert, v) _ = do
     4 -> operationPushStack (U32 (getIntegral a))
     8 -> operationPushStack (U64 (getIntegral a))
     _ -> operationPushStack (U64 (getIntegral a))
-exec (_, Addr, v) _ = do
+exec (Addr, v) = do
   operationAddIp
   operationAddr v
-exec (_, Access, _) _ = do
+exec (Access, _) = do
   operationAddIp
   a <- operationPopStack
   operationAccess (getIntegral a)
-exec (_, Modify, _) _ = do
+exec (Modify, _) = do
   operationAddIp
   a <- operationPopStack
   b <- operationPopStack
   operationModify (getIntegral b) a
-exec (_, Write, _) _ = do
+exec (Write, _) = do
   operationAddIp
   a <- operationPopStack
   operationAddStdOut a
-exec (_, Allocate, _) _ = do
+exec (Allocate, _) = do
   operationAddIp
   a <- operationPopStack
   operationGetHeap (getIntegral a)
-exec (_, GetArg, _) _ = do
+exec (GetArg, _) = do
   operationAddIp
   a <- operationPopStack
   operationGetArg (getIntegral a)
-exec _ _ = do
+exec _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
 
-execOp :: [Instruction] -> Operation ()
-execOp i = do
+execOp :: Operation ()
+execOp = do
   cpu <- Operation get
-  if ip cpu >= Prelude.length i
-  -- if loop cpu == 185
+  if ip cpu >= S.length (instructions cpu)
+  -- if loop cpu == 1
     then return ()
     else do
-      exec (i !! ip cpu) i
+      exec (instructions cpu `S.index` ip cpu)
       operationAddLoop
-      execOp i
+      execOp
 
 execArgs :: [String] -> Operation ()
 execArgs [] = return ()
@@ -630,11 +624,12 @@ execArgs (x:xs) = Operation $ do
       put cpu {cpuStack = U8 (fromIntegral (fromEnum x')) <| cpuStack cpu}
       runOperation (pushArgs xs')
 
-mainTest :: [Instruction] -> [String] -> IO ()
+mainTest :: S.Seq Instruction -> [String] -> IO ()
 mainTest i args' = do
   -- print i
   -- putStrLn ""
   let cpu = execState (runOperation (execArgs args')) emptyCpu
-  let cpu' = execState (runOperation (execOp i)) cpu
-  putStr (stdOut cpu')
-  exitWith (if exitCode cpu' == 0 then ExitSuccess else ExitFailure (exitCode cpu'))
+  let cpu' = execState (runOperation (operationSetInstruction i)) cpu
+  let cpu'' = execState (runOperation execOp) cpu'
+  putStr (stdOut cpu'')
+  exitWith (if exitCode cpu'' == 0 then ExitSuccess else ExitFailure (exitCode cpu''))

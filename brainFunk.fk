@@ -13,18 +13,19 @@
 #define SUCCESS         0
 #define FAILURE         1
 
-#define PROGRAM_SIZE    2048
+#define PROGRAM_SIZE    4096
 #define STACK_SIZE      512
-#define DATA_SIZE       2048
+#define DATA_SIZE       4096
 
-allocate PROGRAM: u8 = PROGRAM_SIZE;
-allocate STACK: u8 = STACK_SIZE;
-
+allocate PROGRAM: u16 = PROGRAM_SIZE * 2;
+allocate STACK: u16 = STACK_SIZE;
 var SP: u32 = 0;
 
+
+
 var data1: u64 = _argv[1];
-var pc: u8 = 0;
-var jmp_pc: u8 = 0;
+var pc: u16 = 0;
+var jmp_pc: u16 = 0;
 var i: i32 = 0;
 while (data1[i] != 0) {
     if (data1[i] == 62) {
@@ -64,8 +65,7 @@ while (data1[i] != 0) {
 PROGRAM[pc * 2] = OP_END;
 
 pc = 0;
-allocate data2: u8 = DATA_SIZE;
-
+allocate data2: u64 = DATA_SIZE;
 var ptr: u32 = DATA_SIZE;
 while (ptr != 0) {
     data2[ptr] = 0;
@@ -91,12 +91,12 @@ while (PROGRAM[pc * 2] != OP_END) {
         data2[ptr] = 0;
     }
     if (PROGRAM[pc * 2] == OP_JMP_FWD) {
-        if(data2[ptr] == 0) {
+        if (data2[ptr] == 0) {
             pc = PROGRAM[pc * 2 + 1];
         }
     }
     if (PROGRAM[pc * 2] == OP_JMP_BCK) {
-        if(data2[ptr] != 0) {
+        if (data2[ptr] != 0) {
             pc = PROGRAM[pc * 2 + 1];
         }
     }

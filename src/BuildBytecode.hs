@@ -357,10 +357,10 @@ getIf (If cond body1 body2) = MemoryState $ do
   runMemoryState (getAll body1)
   stock4 <- get
   sizeofBytecode2 <- runMemoryState (memoryGetSizeBytecodeXtoY goto (S.length (bytecode stock4)))
-  put stock4 {bytecode = S.take goto (bytecode stock4) <> S.singleton (Goto 2 (correspondingInt 2 (toInteger (sizeofBytecode2 + 4)))) <> S.drop goto (bytecode stock4)}
+  put stock4 {bytecode = S.take goto (bytecode stock4) <> S.singleton (Goto 2 (correspondingInt 2 (toInteger (sizeofBytecode2 + 1)))) <> S.drop goto (bytecode stock4)}
   stock5 <- get
   sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock2) + 1))
-  put stock5 {bytecode = S.take save1 (bytecode stock5) <> S.singleton (Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode + 4)))) <> S.drop save1 (bytecode stock5)}
+  put stock5 {bytecode = S.take save1 (bytecode stock5) <> S.singleton (Ift 2 (correspondingInt 2 (toInteger (sizeofBytecode + 1)))) <> S.drop save1 (bytecode stock5)}
 getIf _ = return ()
 
 getUnOp :: Ast -> MemoryState ()
@@ -401,11 +401,11 @@ getWhile (While cond body) = MemoryState $ do
   runMemoryState (getAll body)
   stock1 <- get
   goto <- runMemoryState (memoryGetSizeBytecodeXtoY save1 (S.length (bytecode stock1)))
-  put stock1 {bytecode = S.take save1 (bytecode stock1) <> S.singleton (Goto 2 (correspondingInt 2 (toInteger (goto + 4)))) <> S.drop save1 (bytecode stock1)}
+  put stock1 {bytecode = S.take save1 (bytecode stock1) <> S.singleton (Goto 2 (correspondingInt 2 (toInteger (goto + 1)))) <> S.drop save1 (bytecode stock1)}
   runMemoryState (getAll cond)
   stock2 <- get
   sizeofBytecode <- runMemoryState (memoryGetSizeBytecodeXtoY (save1 + 1) (S.length (bytecode stock2)))
-  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode + 4)))}
+  put stock2 {bytecode = bytecode stock2 |> Bytecode.Ift 2 (correspondingInt 2 (-1 * toInteger (sizeofBytecode + 1)))}
 getWhile _ = return ()
 
 getId :: Ast -> MemoryState ()
