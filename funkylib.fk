@@ -51,3 +51,5 @@ funk putstrrev(str: u64): i32 {
     }
     return 0;
 }
+
+putnbr(50);

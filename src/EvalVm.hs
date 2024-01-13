@@ -529,7 +529,7 @@ execOp i = do
 
 mainTest :: [Instruction] -> IO ()
 mainTest i = do
-  print i
-  putStrLn ""
+  -- print i
+  -- putStrLn ""
   let cpu' = execState (runOperation (execOp i)) emptyCpu
   putStr (stdOut cpu')

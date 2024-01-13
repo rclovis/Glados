@@ -1,0 +1,21 @@
+var str: u8[] = "Hello Bozo!";
+
+funk strlen(str: u64): i32 {
+    var i: i32 = 0;
+    while (str[i] != 0) {
+        i = i + 1;
+    }
+    return i;
+}
+
+funk putstr(str: u64): i32 {
+    var size: i32 = strlen(str);
+    var i: i32 = 0;
+    while (i < size) {
+        write str[i];
+        i = i + 1;
+    }
+    return 0;
+}
+
+putstr(str)
