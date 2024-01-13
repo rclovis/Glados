@@ -8,6 +8,7 @@ where
 import Control.Applicative (Alternative (..))
 import Control.Monad.State
 import Data.Sequence as S
+import Data.Word
 import LexerVm
   ( Instruction,
     OpCode (..),
@@ -52,6 +53,7 @@ data Cpu = Cpu
     cpuState :: Int, -- The status of the program
     loop :: Int, -- The loop counter
     heap :: S.Seq Variable, -- The heap
+    directory :: S.Seq (Int, Int), -- The directory (heap pointer, size)
     stdOut :: String,
     exitCode :: Int,
     args :: S.Seq Variable
@@ -70,6 +72,7 @@ emptyCpu =
       cpuState = 0,
       loop = 0,
       heap = S.empty,
+      directory = S.empty,
       stdOut = "",
       exitCode = 0,
       args = S.empty
@@ -121,6 +124,47 @@ instance Monad Operation where
     let (y, cpu'') = runState op2 cpu'
     put cpu''
     return y
+
+jumpHeap :: Int -> Int -> Int -> S.Seq (Int, Int) -> Int
+jumpHeap x size current dir =
+  if current >= size + x + 1
+    then x
+    else
+      case jumpOne current dir of
+        0 -> jumpHeap x size (current + 1) dir
+        x' -> jumpHeap x' size x' dir
+      where
+        jumpOne :: Int -> S.Seq (Int, Int) -> Int
+        jumpOne _ S.Empty = 0
+        jumpOne x' (y' :<| ys') =
+          if x' >= fst y' && x' < uncurry (+) y'
+            then uncurry (+) y'
+            else jumpOne x' ys'
+
+operationExtendHeap :: Int -> Operation ()
+operationExtendHeap sizeToAdd = Operation $ do
+  cpu <- get
+  let newHeap = S.replicate sizeToAdd None
+  put cpu {heap = newHeap <> heap cpu}
+
+operationAddDirectory :: Int -> Int -> Operation ()
+operationAddDirectory x y = Operation $ do
+  cpu <- get
+  let newDirectory = S.singleton (x, y)
+  put cpu {directory = directory cpu <> newDirectory}
+
+operationGetHeap :: Int -> Operation ()
+operationGetHeap x = Operation $ do
+  cpu <- get
+  let heapPointer = jumpHeap 0 x 0 (directory cpu)
+  if heapPointer + x >= S.length (heap cpu)
+    then do
+      runOperation (operationExtendHeap (heapPointer + x - S.length (heap cpu)))
+      runOperation (operationPushStack (U64 (fromIntegral heapPointer + (2 :: Word64) ^ (63 :: Word64))))
+      runOperation (operationAddDirectory heapPointer x)
+    else do
+      runOperation (operationPushStack (U64 (fromIntegral heapPointer + (2 :: Word64) ^ (63 :: Word64))))
+      runOperation (operationAddDirectory heapPointer x)
 
 operationSetIp :: Int -> Operation ()
 operationSetIp x = Operation $ do
@@ -183,7 +227,6 @@ operationPushStack x = Operation $ do
   cpu <- get
   put cpu {cpuStack = x <| cpuStack cpu}
 
-
 operationPushVar :: Variable -> Operation ()
 operationPushVar x = Operation $ do
   cpu <- get
@@ -222,15 +265,26 @@ operationAddr x = Operation $ do
   cpu <- get
   put cpu {cpuStack = U64 (fromIntegral (S.length (cpuStack cpu) - getIntegral x)) <| cpuStack cpu}
 
-operationAccess :: Int -> Operation ()
+operationAccess :: Word64 -> Operation ()
 operationAccess x = Operation $ do
   cpu <- get
-  put cpu {cpuStack = cpuStack cpu `S.index` (S.length (cpuStack cpu) - 1 - x) <| cpuStack cpu}
+  if x >= ((2 :: Word64) ^ (63 :: Word64))
+    then do
+      let heapPointer = fromIntegral (x - (2 :: Word64) ^ (63 :: Word64))
+      put cpu {cpuStack = heap cpu `S.index` (S.length (heap cpu) - 1 - heapPointer) <| cpuStack cpu}
+    else do
+      put cpu {cpuStack = cpuStack cpu `S.index` (S.length (cpuStack cpu) - 1 - fromIntegral x) <| cpuStack cpu}
 
-operationModify :: Int -> Variable -> Operation ()
+operationModify :: Word64 -> Variable -> Operation ()
 operationModify x y = Operation $ do
   cpu <- get
-  put cpu {cpuStack = S.update (S.length (cpuStack cpu) - 1 - x) y (cpuStack cpu)}
+  if x >= ((2 :: Word64) ^ (63 :: Word64))
+    then do
+      let heapPointer = fromIntegral (x - (2 :: Word64) ^ (63 :: Word64))
+      put cpu {heap = S.update (S.length (heap cpu) - 1 - heapPointer) y (heap cpu)}
+    else do
+      put cpu {cpuStack = S.update (S.length (cpuStack cpu) - 1 - fromIntegral x) y (cpuStack cpu)}
+  -- put cpu {cpuStack = S.update (S.length (cpuStack cpu) - 1 - x) y (cpuStack cpu)}
 
 operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
@@ -529,6 +583,10 @@ exec (_, Write, _) _ = do
   operationAddIp
   a <- operationPopStack
   operationAddStdOut a
+exec (_, Allocate, _) _ = do
+  operationAddIp
+  a <- operationPopStack
+  operationGetHeap (getIntegral a)
 exec _ _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)
@@ -565,5 +623,5 @@ mainTest i args' = do
   putStrLn ""
   let cpu = execState (runOperation (execArgs args')) emptyCpu
   let cpu' = execState (runOperation (execOp i)) cpu
-  putStr (stdOut cpu')
+  putStr (show cpu')
   exitWith (if exitCode cpu' == 0 then ExitSuccess else ExitFailure (exitCode cpu'))

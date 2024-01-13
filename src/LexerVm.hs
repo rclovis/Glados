@@ -70,6 +70,7 @@ data OpCode
   | Access
   | Modify
   | Write
+  | Allocate
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -207,6 +208,8 @@ getInstruction =
     <$ getWord8Value 53
       <|> Write
     <$ getWord8Value 54
+      <|> Allocate
+    <$ getWord8Value 55
 
 
 getVariableI :: Get Variable
@@ -336,6 +339,7 @@ getCouple = do
     Access -> getVariableN
     Modify -> getVariableN
     Write -> getVariableN
+    Allocate -> getVariableN
   return (lenOfVar var + 2, opCode, var)
 
 vmToken :: BL.ByteString -> Maybe [Instruction]
