@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module EvalVm
   ( mainTest,
@@ -14,6 +15,7 @@ import LexerVm
     OpCode (..),
     Variable (..),
   )
+
 import OpNumber
   ( addF,
     addI,
@@ -54,7 +56,6 @@ data Cpu = Cpu
     loop :: Int, -- The loop counter
     heap :: S.Seq Variable, -- The heap
     directory :: S.Seq (Int, Int), -- The directory (heap pointer, size)
-    stdOut :: String,
     exitCode :: Int,
     instructions :: S.Seq Instruction,
     args :: S.Seq Variable
@@ -74,21 +75,20 @@ emptyCpu =
       loop = 0,
       heap = S.empty,
       directory = S.empty,
-      stdOut = "",
       exitCode = 0,
       instructions = S.empty,
       args = S.empty
     }
 
 newtype Operation a = Operation
-  { runOperation :: State Cpu a
-  }
+  { runOperation :: StateT Cpu IO a  -- Use StateT Cpu IO instead of State Cpu
+  } deriving (MonadIO)
 
 instance Functor Operation where
   fmap :: (a -> b) -> Operation a -> Operation b
   fmap f (Operation op) = Operation $ do
     cpu <- get
-    let (x, cpu') = runState op cpu
+    (x, cpu') <- liftIO $ runStateT op cpu
     put cpu'
     return $ f x
 
@@ -100,8 +100,8 @@ instance Applicative Operation where
   (<*>) :: Operation (a -> b) -> Operation a -> Operation b
   (Operation op1) <*> (Operation op2) = Operation $ do
     cpu <- get
-    let (f, cpu') = runState op1 cpu
-    let (x, cpu'') = runState op2 cpu'
+    (f, cpu') <- liftIO $ runStateT op1 cpu
+    (x, cpu'') <- liftIO $ runStateT op2 cpu'
     put cpu''
     return $ f x
 
@@ -113,7 +113,7 @@ instance Alternative Operation where
   (<|>) :: Operation a -> Operation a -> Operation a
   (Operation op1) <|> (Operation _) = Operation $ do
     cpu <- get
-    let (x, cpu') = runState op1 cpu
+    (x, cpu') <- liftIO $ runStateT op1 cpu
     put cpu'
     return x
 
@@ -121,9 +121,9 @@ instance Monad Operation where
   (>>=) :: Operation a -> (a -> Operation b) -> Operation b
   (Operation op1) >>= f = Operation $ do
     cpu <- get
-    let (x, cpu') = runState op1 cpu
+    (x, cpu') <- liftIO $ runStateT op1 cpu
     let (Operation op2) = f x
-    let (y, cpu'') = runState op2 cpu'
+    (y, cpu'') <- liftIO $ runStateT op2 cpu'
     put cpu''
     return y
 
@@ -269,9 +269,8 @@ operationSetInstruction x = Operation $ do
 
 operationAddStdOut :: Variable -> Operation ()
 operationAddStdOut x = Operation $ do
-  cpu <- get
   let c = chr (getIntegral x :: Int)
-  put cpu {stdOut = stdOut cpu ++ [c]}
+  liftIO $ putChar c
 
 operationAddr :: Variable -> Operation ()
 operationAddr x = Operation $ do
@@ -297,7 +296,6 @@ operationModify x y = Operation $ do
       put cpu {heap = S.update (S.length (heap cpu) - 1 - heapPointer) y (heap cpu)}
     else do
       put cpu {cpuStack = S.update (S.length (cpuStack cpu) - 1 - fromIntegral x) y (cpuStack cpu)}
-  -- put cpu {cpuStack = S.update (S.length (cpuStack cpu) - 1 - x) y (cpuStack cpu)}
 
 operationStoreVar :: Int -> Operation ()
 operationStoreVar x = Operation $ do
@@ -599,7 +597,6 @@ execOp :: Operation ()
 execOp = do
   cpu <- Operation get
   if ip cpu >= S.length (instructions cpu)
-  -- if loop cpu == 1
     then return ()
     else do
       exec (instructions cpu `S.index` ip cpu)
@@ -628,8 +625,7 @@ mainTest :: S.Seq Instruction -> [String] -> IO ()
 mainTest i args' = do
   -- print i
   -- putStrLn ""
-  let cpu = execState (runOperation (execArgs args')) emptyCpu
-  let cpu' = execState (runOperation (operationSetInstruction i)) cpu
-  let cpu'' = execState (runOperation execOp) cpu'
-  putStr (stdOut cpu'')
+  cpu <- execStateT (runOperation (execArgs args')) emptyCpu
+  cpu' <- execStateT (runOperation (operationSetInstruction i)) cpu
+  cpu'' <- execStateT (runOperation execOp) cpu'
   exitWith (if exitCode cpu'' == 0 then ExitSuccess else ExitFailure (exitCode cpu''))
