@@ -16,7 +16,7 @@ var variable: i32;
 
 ## Functions
 
-```c#
+```rust
 funk fonction (): i32
 {
 	var variable: i32 = 0;
@@ -41,12 +41,12 @@ funk add (a: i32, b: i32): i32
 
 ## Pointers
 
-```c#
+```rust
 var variable: i32 = 0;
 var pointer: *i32 = &variable;
 ```
 
 ## Imports
-```
-include "pathToFile"
+```c
+#include "pathToFile"
 ```
