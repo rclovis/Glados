@@ -66,8 +66,11 @@ function test_all() {
 }
 
 # Test cases
-test_all "Ftests/Input1" "Ftests/Output1" "Simple putstr"
+test_all "Ftests/Input1.fk" "Ftests/Output1" "Simple putstr"
+test_all "Ftests/Input2.fk" "Ftests/Output2" "putnbr All cases"
+test_all "Ftests/Input4.fk" "Ftests/Output4" "Simple Operations"
+test_all "Ftests/Input3.fk" "Ftests/Output3" "ComplexesOperations"
 
-echo "Tested: $((passed + failed)) tests"
+echo "Tested: $((passed + failed))"
 echo "Passed: $passed"
 echo "Failed: $failed"
