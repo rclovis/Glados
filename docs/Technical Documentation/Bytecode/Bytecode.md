@@ -1,5 +1,5 @@
 # Binary
-The bytecode is composed of [[Glados/Instructions|Instructions]]. Each instruction is followed with one or no arguments.
+The bytecode is composed of [instructions](Instructions.md). Each instruction is followed with one or no arguments.
 
 To be able to evaluate the bytecode three important structures are required:
 ## Operand Stack
