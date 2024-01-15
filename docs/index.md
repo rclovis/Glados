@@ -29,11 +29,14 @@ stack run vm-exe [path to your bytecode] [arguments]
 <div style="display: flex; justify-content: space-between;">
     <a href="https://github.com/EstusSipper">
         <img src="https://avatars.githubusercontent.com/u/91874316?v=4" width="150" height="150">
+        <p>Erwan Gonzales</p>
     </a>
     <a href="https://github.com/rclovis">
         <img src="https://avatars.githubusercontent.com/u/91875893?v=4" width="150" height="150">
+        <p>Clovis Rabot</p>
     </a>
     <a href="https://github.com/TotoFunki">
         <img src="https://media.licdn.com/dms/image/D4E03AQF5p--YcDCWoQ/profile-displayphoto-shrink_800_800/0/1697809819173?e=1706745600&v=beta&t=FIEWA66x7PpYe9ZfTns7dk1rxuWL16BEAU34tHwqS0Q" width="150" height="150">
+        <p>Théo Liennard</p>
     </a>
 </div>

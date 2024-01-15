@@ -597,6 +597,7 @@ execOp :: Operation ()
 execOp = do
   cpu <- Operation get
   if ip cpu >= S.length (instructions cpu)
+  -- if loop cpu == 4
     then return ()
     else do
       exec (instructions cpu `S.index` ip cpu)
