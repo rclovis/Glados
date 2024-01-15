@@ -1,18 +1,18 @@
-# Binary
+## Binary
 The bytecode is composed of [instructions](Instructions.md). Each instruction is followed with one or no arguments.
 
 To be able to evaluate the bytecode three important structures are required:
-## Operand Stack
+### Operand Stack
 This stack is used to manage variables during the call of functions.
 Variables are pushed onto it thanks to `iload`, `fload`, `iconst` or `fconst` and are retrieve thanks to `istore`, `fstore` or `return`.
 
 > [!warning]
 > Elements of this stack are consumed upon use.
 
-## Funk env
+### Funk env
 This stack is used to store the position of every function already parsed in the bytecode.
 
-## Variable Env
+### Variable Env
 This stack is used to store the value of variable with their index.
 This stack has multiple instances during the eval of the bytecode because every `invoke` create a local variable env.
 
@@ -20,8 +20,8 @@ This stack has multiple instances during the eval of the bytecode because every 
 > Upon `invoke` call, the arguments for the function must be loaded in the variable env from the index 0 to index number of the arguments.
 
 
-# Examples
-## #1
+## Examples
+### #1
 ```rust
 funk add (a: i32, b: i32): i32
 {
@@ -48,7 +48,7 @@ invoke #0          ; Invoke add function
 ; The result is now on the stack
 ```
 
-## #2
+### #2
 ```rust
 funk factorial(n: i32): i32
 {

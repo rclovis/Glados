@@ -1,4 +1,4 @@
-# Description
+## Description
 
 The Funk's AST is composed of several logic nodes. Those nodes provide the boilerplate functions for the language to execute logic:
 
@@ -24,7 +24,7 @@ But it is also composes of node expressing values. As a function call, arithmeti
 
 Using theses nodes the Funk's AST is able to sequence the logic of a funk program giving it iterative logic with the use of `while` loops, conditional logic using `if` and functional logic using `call` and `lambda`.
 
-## Representation
+### Representation
 
 Here is the representation of the generated AST for a recursive factorial function:
 

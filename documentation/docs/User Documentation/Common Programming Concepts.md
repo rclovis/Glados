@@ -1,4 +1,4 @@
-# Common Programming Concepts
+## Common Programming Concepts
 
 In this chapter, we'll cover all the common concepts Funk shares with other languages. Specifically we'll talk variables, loop, conditional statements, functions and IO.
 

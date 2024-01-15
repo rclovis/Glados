@@ -1,4 +1,4 @@
-# The Funk Programming Language
+## The Funk Programming Language
 
 Welcome to *The Funk Programming Language*, an introduction about Funk. Funk is a High-level and low-level control inspired from Rust and the C heritage. Funk is all about elegant syntax from modern language while providing control over your code.
 
