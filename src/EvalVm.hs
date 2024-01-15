@@ -629,6 +629,4 @@ mainTest i args' = do
   cpu <- execStateT (runOperation (execArgs args')) emptyCpu
   cpu' <- execStateT (runOperation (operationSetInstruction i)) cpu
   cpu'' <- execStateT (runOperation execOp) cpu'
-  putStrLn (show (cpuStack cpu''))
-  putStrLn (show (cpuVar cpu''))
   exitWith (if exitCode cpu'' == 0 then ExitSuccess else ExitFailure (exitCode cpu''))

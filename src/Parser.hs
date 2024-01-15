@@ -17,15 +17,12 @@ module Parser
     parseQuantity,
     parseFloat,
     parseUFloat,
-    parseOneChar,
-    parseByte,
     parseAnyCharBut,
     parseAnyCharUntil,
   )
 where
 
 import Control.Applicative (Alternative (..))
-import Data.Char
 
 
 newtype Parser a = Parser
@@ -82,20 +79,6 @@ parseChar c = Parser f
     f (x : xs)
       | x == c = Just (c, xs)
       | otherwise = Nothing
-    f [] = Nothing
-
-parseByte :: Int -> Parser Int
-parseByte n = Parser f
-  where
-    f (x : xs)
-      | ord x == n = Just (n, xs)
-      | otherwise = Nothing
-    f [] = Nothing
-
-parseOneChar :: Parser Char
-parseOneChar = Parser f
-  where
-    f (x : xs) = Just (x, xs)
     f [] = Nothing
 
 parseString :: String -> Parser String

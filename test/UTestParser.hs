@@ -17,6 +17,9 @@ import Parser
     parseUFloat,
     parseUInt,
     runParser,
+    parseNothing,
+    parseAnyCharBut,
+    parseAnyCharUntil,
   )
 import Test.HUnit
 
@@ -148,6 +151,24 @@ parseFloatTest = TestCase $ do
   assertEqual "parseFloatTest" (Just (0.0, "u123.0foobar")) (runParser parseFloat "0.u123.0foobar")
   assertEqual "parseFloatTest" Nothing (runParser parseFloat "d0u123.0foobar")
 
+parseNothingTest :: Test
+parseNothingTest = TestCase $ do
+  assertEqual "parseNothingTest" (Just ((), "foobar")) (runParser parseNothing "foobar")
+
+parseAnyCharButTest :: Test
+parseAnyCharButTest = TestCase $ do
+  assertEqual "parseAnyCharButTest" Nothing (runParser (parseAnyCharBut "abc") "abcdef")
+  assertEqual "parseAnyCharButTest" (Just ('d', "ef")) (runParser (parseAnyCharBut "abc") "def")
+  assertEqual "parseAnyCharButTest" (Just ('a', "bcdef\n")) (runParser (parseAnyCharBut "\n") "abcdef\n")
+
+parseAnyCharUntilTest :: Test
+parseAnyCharUntilTest = TestCase $ do
+  assertEqual "parseAnyCharUntilTest" (Just ("abc", "def")) (runParser (parseAnyCharUntil "def") "abcdef")
+  assertEqual "parseAnyCharUntilTest" (Just ("abc", "")) (runParser (parseAnyCharUntil "def") "abc")
+  assertEqual "parseAnyCharUntilTest" (Just ("", "def")) (runParser (parseAnyCharUntil "def") "def")
+  assertEqual "parseAnyCharUntilTest" (Just ("", "")) (runParser (parseAnyCharUntil "def") "")
+  assertEqual "parseAnyCharUntilTest" (Just ("abc","defdef")) (runParser (parseAnyCharUntil "def") "abcdefdef")
+
 parserTestSuite :: Test
 parserTestSuite =
   TestList
@@ -164,5 +185,8 @@ parserTestSuite =
       TestLabel "ParseListTest" parseListTest,
       TestLabel "ParseQuantityTest" parseQuantityTest,
       TestLabel "ParseUFloatTest" parseUFloatTest,
-      TestLabel "ParseFloatTest" parseFloatTest
+      TestLabel "ParseFloatTest" parseFloatTest,
+      TestLabel "ParseNothingTest" parseNothingTest,
+      TestLabel "ParseAnyCharButTest" parseAnyCharButTest,
+      TestLabel "ParseAnyCharUntilTest" parseAnyCharUntilTest
     ]
