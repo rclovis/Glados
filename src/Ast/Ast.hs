@@ -8,21 +8,31 @@ module Ast.Ast
 where
 
 import Ast.Expr (Expr (..))
+import qualified Ast.Expr as Expr
 import Ast.Op (Op (..))
 import Ast.Types (Type (..))
 import Ast.Utils (takeUntil)
 import Control.Applicative
+import Data.Char (ord)
 import Lexer (OperatorParsed (..), Token (..), TypeParsed (..))
 
 type Arg = (String, Type)
 
+type Size = Int
+
 data Ast
   = Seq [Ast]
+  | Allocate String Type Ast
   | Define String Type Ast
   | Assign String Ast
+  | AssignArray String Ast Ast
   | Lambda [Arg] Ast
   | Call String [Ast]
   | Return Ast
+  | Write Ast
+  | Malloc Ast
+  | Free Ast
+  | Exit Ast
   | If Ast Ast Ast
   | While Ast Ast
   | Break
@@ -32,6 +42,9 @@ data Ast
   | UnOp Op Ast
   | Int Int
   | Float Float
+  | Array Type Size Ast
+  | ArrayValue [Ast]
+  | Indexing String Ast
   deriving (Eq, Ord, Show)
 
 genAst :: [Expr] -> Maybe Ast
@@ -52,14 +65,23 @@ getAst xs = do
       <|> getContinue xs
       <|> getDefine xs
       <|> getAssign xs
+      <|> getAllocation xs
       <|> getReturn xs
+      <|> getKeywordArg xs
       <|> case getValue [Parenthesis xs] of
         Nothing -> Nothing
         Just ast -> Just (ast, [])
-      <|> error ("Unknown syntax: " ++ show xs)
   case getAst expr of
     Nothing -> pure (ast, expr)
-    Just (ys, zs) -> pure (Seq (ast : [ys]), zs)
+    Just (Seq ys, zs) -> pure (Seq (ast : ys), zs)
+    Just (y, zs) -> pure (Seq [ast, y], zs)
+
+getAllocation :: [Expr] -> Maybe (Ast, [Expr])
+getAllocation (A Lexer.Malloc : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : A (Symbol "=") : xs) = do
+  (value, xs') <- getValueEnd xs
+  t' <- getType t
+  pure (Ast.Ast.Allocate name t' value, xs')
+getAllocation _ = Nothing
 
 getValue :: [Expr] -> Maybe Ast
 getValue xs =
@@ -70,14 +92,16 @@ getValue xs =
     <|> getBinOp lv3priority xs
     <|> getParentheses xs
     <|> getCallFunk xs
+    <|> getIndexing xs
+    <|> getArrayValue xs
     <|> getNumber xs
     <|> getIdentifier xs
-    <|> error ("Invalid Expression: " ++ show xs)
   where
     getCallFunk :: [Expr] -> Maybe Ast
+    getCallFunk [FuncCall name (Parenthesis [])] = pure (Call name [])
     getCallFunk [FuncCall name (Parenthesis args)] = do
-      args' <- getValue args
-      pure (Call name [args'])
+      ArrayValue args' <- getArrayValue [Brackets args]
+      pure (Call name args')
     getCallFunk _ = Nothing
 
 getBinOp :: (Expr -> Bool) -> [Expr] -> Maybe Ast
@@ -91,6 +115,12 @@ getBinOp f xs = do
 getParentheses :: [Expr] -> Maybe Ast
 getParentheses [Parenthesis body] = getValue $ reverse body
 getParentheses _ = Nothing
+
+getIndexing :: [Expr] -> Maybe Ast
+getIndexing (Expr.Indexing name (Brackets expr) : _) = do
+  expr' <- (getValue . reverse) expr
+  pure (Ast.Ast.Indexing name expr')
+getIndexing _ = Nothing
 
 getSplitAtOp :: (a -> Bool) -> [a] -> Maybe ([a], a, [a])
 getSplitAtOp f (x : xs)
@@ -134,18 +164,19 @@ getUnOp _ = Nothing
 
 getFunk :: [Expr] -> Maybe (Ast, [Expr])
 getFunk (A Funk : A (Identifier name) : Parenthesis args : A (Symbol ":") : A (Lexer.Type t) : Braces body : xs) = do
-  (args', []) <- getArgs args
+  args' <- case args of
+    [] -> pure []
+    _ -> mapM getArg (splitBySeparator (== A Comma) args)
   (body', []) <- getAst body
   type' <- getType t
   pure (Define name type' (Lambda args' body'), xs)
   where
-    getArgs :: [Expr] -> Maybe ([Arg], [Expr])
-    getArgs [] = pure ([], [])
-    getArgs (A (Identifier name') : A (Symbol ":") : A (Lexer.Type t') : zs) = do
+    getArg :: [Expr] -> Maybe Arg
+    getArg [] = Nothing
+    getArg [A (Identifier name'), A (Symbol ":"), A (Lexer.Type t')] = do
       t'' <- getType t'
-      (args', []) <- getArgs zs
-      pure ((name', t'') : args', [])
-    getArgs _ = Nothing
+      pure (name', t'')
+    getArg _ = Nothing
 getFunk _ = Nothing
 
 getIf :: [Expr] -> Maybe (Ast, [Expr])
@@ -161,12 +192,14 @@ getIf (A Lexer.If : Parenthesis cond : Braces body : xs) = do
 getIf _ = Nothing
 
 getCall :: [Expr] -> Maybe (Ast, [Expr])
+getCall (FuncCall name (Parenthesis []) : A End : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : A End : xs) = do
-  args' <- getValue args
-  pure (Call name [args'], xs)
+  ArrayValue args' <- getArrayValue [Brackets args]
+  pure (Call name args', xs)
+getCall (FuncCall name (Parenthesis []) : xs) = pure (Call name [], xs)
 getCall (FuncCall name (Parenthesis args) : xs) = do
-  args' <- getValue args
-  pure (Call name [args'], xs)
+  ArrayValue args' <- getArrayValue args
+  pure (Call name args', xs)
 getCall _ = Nothing
 
 getWhile :: [Expr] -> Maybe (Ast, [Expr])
@@ -184,7 +217,27 @@ getContinue :: [Expr] -> Maybe (Ast, [Expr])
 getContinue (A Lexer.Continue : xs) = pure (Ast.Ast.Continue, xs)
 getContinue _ = Nothing
 
+getArrayValue :: [Expr] -> Maybe Ast
+getArrayValue [Brackets expr] = do
+  let value = splitBySeparator (== A Comma) expr
+  expr' <- mapM (getValue . reverse) value
+  pure (ArrayValue expr')
+getArrayValue _ = Nothing
+
 getDefine :: [Expr] -> Maybe (Ast, [Expr])
+getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : Brackets size : A (Symbol "=") : xs) = do
+  t' <- getType t
+  sz <- getArraySize size
+  (ArrayValue value, xs') <- getArr xs
+  if sz == 0
+    then pure (Define name Tu64 (Array t' (length value) (ArrayValue value)), xs')
+    else
+      if sz - length value < 0
+        then Nothing
+        else
+          if sz - length value > 0
+            then pure (Define name Tu64 (Array t' sz (ArrayValue (value ++ replicate (sz - length value) (defaultValue t')))), xs')
+            else pure (Define name Tu64 (Array t' sz (ArrayValue value)), xs')
 getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t) : A (Symbol "=") : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
@@ -192,12 +245,77 @@ getDefine (A Lexer.Var : A (Identifier name) : A (Symbol ":") : A (Lexer.Type t)
   pure (Define name t' expr, xs')
 getDefine _ = Nothing
 
+getArr :: [Expr] -> Maybe (Ast, [Expr])
+getArr expr = do
+  let (expr', xs) = takeUntil (== A End) expr
+  arr <-
+    getArrayValue expr'
+      <|> (stringToArray =<< (\s -> Just (s ++ "\0")) =<< escape =<< getStrings expr')
+  pure (arr, xs)
+  where
+    stringToArray :: String -> Maybe Ast
+    stringToArray [] = pure (ArrayValue [])
+    stringToArray (c : cs) = do
+      ArrayValue arr <- stringToArray cs
+      pure (ArrayValue (Int (ord c) : arr))
+    escape :: String -> Maybe String
+    escape [] = pure []
+    escape ('\\' : 'n' : cs) = do
+      cs' <- escape cs
+      pure ('\n' : cs')
+    escape ('\\' : 't' : cs) = do
+      cs' <- escape cs
+      pure ('\t' : cs')
+    escape ('\\' : '\\' : cs) = do
+      cs' <- escape cs
+      pure ('\\' : cs')
+    escape ('\\' : '"' : cs) = do
+      cs' <- escape cs
+      pure ('"' : cs')
+    escape ('\\' : '0' : cs) = do
+      cs' <- escape cs
+      pure ('\0' : cs')
+    escape (c : cs) = do
+      cs' <- escape cs
+      pure (c : cs')
+
+getStrings :: [Expr] -> Maybe String
+getStrings [] = pure ""
+getStrings (A (String s) : xs) = do
+  s' <- getStrings xs
+  pure (s ++ s')
+getStrings _ = Nothing
+
+getArraySize :: [Expr] -> Maybe Int
+getArraySize [] = pure 0
+getArraySize [A (INumber n)] = pure n
+getArraySize _ = Nothing
+
+splitBySeparator :: (a -> Bool) -> [a] -> [[a]]
+splitBySeparator f as = case break f as of
+  (as', []) -> [as']
+  (as', _ : ys) -> as' : splitBySeparator f ys
+
+defaultValue :: Type -> Ast
+defaultValue Tf32 = Float 0
+defaultValue Tf64 = Float 0
+defaultValue _ = Int 0
+
 getAssign :: [Expr] -> Maybe (Ast, [Expr])
+getAssign (Expr.Indexing name (Brackets index) : A (Symbol "=") : xs) = do
+  (value, xs') <- getArr xs <|> getValueEnd xs
+  index' <- getValue $ reverse index
+  pure (AssignArray name index' value, xs')
 getAssign (A (Identifier name) : A (Symbol "=") : xs) = do
+  (value, xs') <- getArr xs <|> getValueEnd xs
+  pure (Assign name value, xs')
+getAssign _ = Nothing
+
+getValueEnd :: [Expr] -> Maybe (Ast, [Expr])
+getValueEnd xs = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
-  pure (Assign name expr, xs')
-getAssign _ = Nothing
+  pure (expr, xs')
 
 getReturn :: [Expr] -> Maybe (Ast, [Expr])
 getReturn (A (Identifier "return") : xs) = do
@@ -205,6 +323,21 @@ getReturn (A (Identifier "return") : xs) = do
   (expr, _) <- getAst value
   pure (Return expr, xs')
 getReturn _ = Nothing
+
+getKeywordArg :: [Expr] -> Maybe (Ast, [Expr])
+getKeywordArg (A Lexer.Write : xs) = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (Ast.Ast.Write expr, xs')
+getKeywordArg (A Lexer.Free : xs) = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (Ast.Ast.Free expr, xs')
+getKeywordArg (A Lexer.Exit : xs) = do
+  let (value, xs') = takeUntil (== A End) xs
+  (expr, _) <- getAst value
+  pure (Ast.Ast.Exit expr, xs')
+getKeywordArg _ = Nothing
 
 getNumber :: [Expr] -> Maybe Ast
 getNumber [A (INumber n)] = pure (Int n)

@@ -1,6 +1,6 @@
 module Bytecode (getBin, bytecode, Bytecode (..), IntTypes (..), FloatingPoint (..), WordTypes (..), getHumanReadable, getSizeBytecode) where
 
-import Data.Bits (shiftR, (.&.))
+import Data.Bits (shiftR, (.&.)) 
 import qualified Data.ByteString as B
 import Data.Char (digitToInt)
 import Data.Int (Int16, Int32, Int64, Int8)
@@ -77,10 +77,13 @@ data Bytecode
   | Iconvert Word8 Word8
   | Fconvert Word8 Word8
   | Uconvert Word8 Word8
+  | Addr Word8 WordTypes
+  | Access
+  | Modify
+  | Write
+  | Allocate
+  | GetArg
   deriving (Show, Eq)
-
-word8toChar :: [Word8] -> B.ByteString
-word8toChar = B.pack
 
 intTypesTo8bit :: IntTypes -> [Word8]
 intTypesTo8bit intType =
@@ -216,8 +219,12 @@ getSign f
 padZeros :: Int -> [Char] -> [Char]
 padZeros len str = replicate (max 0 (len - length str)) '0' ++ str
 
+-- Funk + 32 0x00
+header :: B.ByteString
+header = B.pack [0x46, 0x55, 0x4E, 0x4B] `B.append` foldr B.cons B.empty (replicate 64 0x00)
+
 getBin :: [Bytecode] -> B.ByteString
-getBin = B.pack . concatMap toBin
+getBin xs = header `B.append` foldr B.cons B.empty (concatMap toBin xs)
 
 toBin :: Bytecode -> [Word8]
 toBin (Funk a b) = [0, a] ++ intTypesTo8bit b
@@ -271,15 +278,21 @@ toBin Not = [47]
 toBin (Iconvert a b) = [48, a, b]
 toBin (Fconvert a b) = [49, a, b]
 toBin (Uconvert a b) = [50, a, b]
+toBin (Addr a b) = [51, a] ++ wordTypesTo8bit b
+toBin Access = [52]
+toBin Modify = [53]
+toBin Write = [54]
+toBin Allocate = [55]
+toBin GetArg = [56]
 
 getHumanReadable :: [Bytecode] -> [Char]
 getHumanReadable = concatMap toHumanReadable
 
 toHumanReadable :: Bytecode -> [Char]
 toHumanReadable (Funk _ b) = "Funk " ++ show b ++ "\n"
-toHumanReadable (Iload _ b) = " Iload " ++ show b ++ "\n"
-toHumanReadable (Fload _ b) = " Fload " ++ show b ++ "\n"
-toHumanReadable (Uload _ b) = " Uload " ++ show b ++ "\n"
+toHumanReadable (Iload _ b) = "  Iload " ++ show b ++ "\n"
+toHumanReadable (Fload _ b) = "  Fload " ++ show b ++ "\n"
+toHumanReadable (Uload _ b) = "  Uload " ++ show b ++ "\n"
 toHumanReadable (Istore _ b) = "  Istore " ++ show b ++ "\n"
 toHumanReadable (Fstore _ b) = "  Fstore " ++ show b ++ "\n"
 toHumanReadable (Ustore _ b) = "  Ustore " ++ show b ++ "\n"
@@ -327,6 +340,12 @@ toHumanReadable Not = "  Not\n"
 toHumanReadable (Iconvert _ b) = "  Iconvert " ++ show b ++ "\n"
 toHumanReadable (Fconvert _ b) = "  Fconvert " ++ show b ++ "\n"
 toHumanReadable (Uconvert _ b) = "  Uconvert " ++ show b ++ "\n"
+toHumanReadable (Addr _ b) = "  Addr " ++ show b ++ "\n"
+toHumanReadable Access = "  Access\n"
+toHumanReadable Modify = "  Modify\n"
+toHumanReadable Write = "  Write\n"
+toHumanReadable Allocate = "  Allocate\n"
+toHumanReadable GetArg = "  GetArg\n"
 
 bytecode :: [Bytecode]
 bytecode =
@@ -351,54 +370,4 @@ bytecode =
   ]
 
 getSizeBytecode :: Bytecode -> Int
-getSizeBytecode (Funk x _) = fromIntegral x + 2
-getSizeBytecode (Iload x _) = fromIntegral x + 2
-getSizeBytecode (Fload x _) = fromIntegral x + 2
-getSizeBytecode (Uload x _) = fromIntegral x + 2
-getSizeBytecode (Istore x _) = fromIntegral x + 2
-getSizeBytecode (Fstore x _) = fromIntegral x + 2
-getSizeBytecode (Ustore x _) = fromIntegral x + 2
-getSizeBytecode (Iconst x _) = fromIntegral x + 2
-getSizeBytecode (Fconst x _) = fromIntegral x + 2
-getSizeBytecode (Uconst x _) = fromIntegral x + 2
-getSizeBytecode Iadd = 1
-getSizeBytecode Fadd = 1
-getSizeBytecode Isub = 1
-getSizeBytecode Fsub = 1
-getSizeBytecode Imul = 1
-getSizeBytecode Fmul = 1
-getSizeBytecode Idiv = 1
-getSizeBytecode Fdiv = 1
-getSizeBytecode Imod = 1
-getSizeBytecode Ieq = 1
-getSizeBytecode Ine = 1
-getSizeBytecode Ilt = 1
-getSizeBytecode Igt = 1
-getSizeBytecode Ile = 1
-getSizeBytecode Ige = 1
-getSizeBytecode Feq = 1
-getSizeBytecode Fne = 1
-getSizeBytecode Flt = 1
-getSizeBytecode Fgt = 1
-getSizeBytecode Fle = 1
-getSizeBytecode Fge = 1
-getSizeBytecode (Ift x _) = fromIntegral x + 2
-getSizeBytecode (Iff x _) = fromIntegral x + 2
-getSizeBytecode (Goto x _) = fromIntegral x + 2
-getSizeBytecode Iand = 1
-getSizeBytecode Ior = 1
-getSizeBytecode Ixor = 1
-getSizeBytecode (Invoke x _) = fromIntegral x + 2
-getSizeBytecode Return = 1
-getSizeBytecode I2f = 1
-getSizeBytecode F2i = 1
-getSizeBytecode (Pop x _) = fromIntegral x + 2
-getSizeBytecode (Dup x _) = fromIntegral x + 2
-getSizeBytecode (PopPrev x _) = fromIntegral x + 2
-getSizeBytecode (IloadStack x _) = fromIntegral x + 2
-getSizeBytecode (FloadStack x _) = fromIntegral x + 2
-getSizeBytecode (UloadStack x _) = fromIntegral x + 2
-getSizeBytecode Not = 1
-getSizeBytecode (Iconvert _ _) = 3
-getSizeBytecode (Fconvert _ _) = 3
-getSizeBytecode (Uconvert _ _) = 3
+getSizeBytecode _ = 1

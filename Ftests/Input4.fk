@@ -1,0 +1,45 @@
+funk putnbr(nb: i32): i32 {
+    var pow: i32 = 1;
+
+    if (nb == 0) {
+        write 48;
+        return 0;
+    }
+
+    if (nb < 0) {
+        write 45;
+        nb = nb * -1;
+    }
+    var save: i32 = nb;
+
+    while (save > 0) {
+        pow = pow * 10;
+        save = save / 10;
+    }
+    pow = pow / 10;
+
+    while (pow > 0) {
+        write ((nb / pow) + 48);
+        nb = nb % pow;
+        pow = pow / 10;
+    }
+    return 0;
+}
+
+var test: i32 = 125 + 5;
+var test2: i32 = 125 - 5;
+var test3: i32 = 125 * 5;
+var test4: i32 = 125 / 5;
+var test5: i32 = 125 % 5;
+
+putnbr(test);
+write 10;
+putnbr(test2);
+write 10;
+putnbr(test3);
+write 10;
+putnbr(test4);
+write 10;
+putnbr(test5);
+write 10;
+

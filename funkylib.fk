@@ -1,0 +1,69 @@
+funk strlen(str: u64): i32 {
+    var i: i32 = 0;
+    while (str[i] != 0) {
+        i = i + 1;
+    }
+    return i;
+}
+
+funk putstr(str: u64): i32 {
+    var size: i32 = strlen(str);
+    var i: i32 = 0;
+    while (i < size) {
+        write str[i];
+        i = i + 1;
+    }
+    return 0;
+}
+
+funk putnbr(nb: i32): i32 {
+    var pow: i32 = 1;
+    var save: i32 = nb;
+
+    if (nb == 0) {
+        write 48;
+        return 0;
+    }
+
+    if (nb < 0) {
+        write 45;
+        nb = nb * -1;
+    }
+
+    while (save > 0) {
+        pow = pow * 10;
+        save = save / 10;
+    }
+    pow = pow / 10;
+
+    while (pow > 0) {
+        write ((nb / pow) + 48);
+        nb = nb % pow;
+        pow = pow / 10;
+    }
+    return 0;
+}
+
+funk putstrrev(str: u64): i32 {
+    var size: i32 = strlen(str);
+    var i: i32 = size - 1;
+    while (i >= 0) {
+        write str[i];
+        i = i - 1;
+    }
+    return 0;
+}
+
+funk strcmp(str1: u64, str2: u64): i32 {
+    var i: i32 = 0;
+    while (str1[i] != 0 && str2[i] != 0) {
+        if (str1[i] != str2[i]) {
+            return 1;
+        }
+        i = i + 1;
+    }
+    if (str1[i] != str2[i]) {
+        return 1;
+    }
+    return 0;
+}

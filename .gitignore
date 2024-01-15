@@ -1,6 +1,7 @@
 .stack-work/
 *~
 *.rkt
+*.bin
 glados.cabal
 dist-newstyle/
 factorial.csm

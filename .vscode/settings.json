@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.cfg": "alex",
+        "random": "c"
+    }
+}

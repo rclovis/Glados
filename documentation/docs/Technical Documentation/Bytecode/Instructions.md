@@ -1,3 +1,5 @@
+## Bytecode Instructions
+
 1. **Memory Management Instructions:**
 	- `iload`, `uload`, `fload`: Load an integer, unsigned integer or float from a local variable onto the operand stack. It takes the index and the size of the variable as arguments.
 	- `istore`, `ustore`, `fstore`: Store an integer, unsigned integer or float at the top of the operand stack, into a local variable. It takes the index and the size of the variable as arguments.
@@ -22,6 +24,22 @@
     - `return`: Return from the current method.
 6. **Type Conversion Instructions:**
     - `i2f`, `f2i`: Convert integer to float or float to integer.
+7. **Stack Instructions:**
+    - `pop`: Pop the top element from the operand stack.
+    - `dup`: Duplicate the top element on the operand stack.
+    - `popPrev`: Pop the element below the top element from the operand stack.
+    - `iloadStack`, `floadStack`, `uloadStack`: Load an integer, unsigned integer or float from the operand stack onto the operand stack. It takes the index and the size of the variable as arguments.
+8. **Bitwise Instructions:**
+    - `not`: Bitwise NOT for integers.
+9. **Type Conversion Instructions:**
+    - `iconvert`, `uconvert`, `fconvert`: Convert integer to unsigned integer or float, unsigned integer to integer or float, float to integer or unsigned integer.
+10. **Memory Access Instructions:**
+    - `addr`: Get the address of a variable.
+    - `access`: Access a variable at a given address.
+    - `modify`: Modify a variable at a given address.
+    - `write`: Write a value in the stdout.
+    - `allocate`: Allocate a given number of bytes on the heap.
+    - `getArg`: Get the argument at a given index.
 
 | Bin Code      | Instruction                              | Argument      |
 | ------------- | ---------------------------------------- | --------- |
@@ -47,3 +65,10 @@
 | 0x2B          | `popPrev`                                | True          |
 | 0x2C ... 0x2E | `iloadStack`, `floadStack`, `uloadStack` | True          |
 | 0x2F          | `not`                                    | False          |
+| 0x30 ... 0x32 | `iconvert`, `uconvert`, `fconvert`       | True          |
+| 0x33          | `addr`                                   | True          |
+| 0x34          | `access`                                 | False          |
+| 0x35          | `modify`                                 | False          |
+| 0x36          | `write`                                  | False          |
+| 0x37          | `allocate`                               | False          |
+| 0x38          | `getArg`                                 | False          |

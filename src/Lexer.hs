@@ -9,23 +9,6 @@ where
 
 import Control.Applicative (Alternative (..))
 import Parser
-  ( Parser (..),
-    parseAndWith,
-    parseAnyChar,
-    parseChar,
-    parseFloat,
-    parseInt,
-    parseList,
-    parseMany,
-    parseNothing,
-    parseOr,
-    parseQuantity,
-    parseSome,
-    parseString,
-    parseUFloat,
-    parseUInt,
-    runParser,
-  )
 
 data TypeParsed
   = I8
@@ -74,8 +57,14 @@ data Token
   | Else
   | While
   | Break
+  | GetArg
+  | Comma
   | End
   | Funk
+  | Write
+  | Malloc
+  | Free
+  | Exit
   | Operator OperatorParsed
   | Type TypeParsed
   | Identifier String
@@ -150,9 +139,6 @@ parseOperator =
 parseFunk :: Parser Token
 parseFunk = fmap (const Funk) (parseString "funk")
 
-parseInclude :: Parser Token
-parseInclude = fmap (const Include) (parseString "include")
-
 parseVar :: Parser Token
 parseVar = fmap (const Var) (parseString "var")
 
@@ -167,6 +153,24 @@ parseWhile = fmap (const While) (parseString "while")
 
 parseBreak :: Parser Token
 parseBreak = fmap (const Break) (parseString "break")
+
+parseWrite :: Parser Token
+parseWrite = fmap (const Write) (parseString "write")
+
+parseMalloc :: Parser Token
+parseMalloc = fmap (const Malloc) (parseString "allocate")
+
+parseGetArg :: Parser Token
+parseGetArg = fmap (const GetArg) (parseString "getarg")
+
+parseFree :: Parser Token
+parseFree = fmap (const Free) (parseString "free")
+
+parseExit :: Parser Token
+parseExit = fmap (const Exit) (parseString "exit")
+
+parseComma :: Parser Token
+parseComma = fmap (const Comma) (parseChar ',')
 
 parseContinue :: Parser Token
 parseContinue = fmap (const Continue) (parseString "continue")
@@ -196,10 +200,44 @@ parseBoolean :: Parser Token
 parseBoolean = fmap Boolean (parseOr (fmap (const True) (parseString "true")) (fmap (const False) (parseString "false")))
 
 parseComment :: Parser Token
-parseComment = fmap (const Null) (parseString ";;" *> parseMany (parseAnyChar (printableChar "\n")) *> parseChar '\n')
+parseComment = do
+  _ <- parseString "//"
+  _ <- parseMany (parseAnyCharBut "\n")
+  _ <- parseChar '\n'
+  return Null
 
 parseToken :: Parser Token
-parseToken = parseComment <|> parseEnd <|> parseClosePar <|> parseOpenPar <|> parseCloseBracket <|> parseOpenBracket <|> parseCloseBrace <|> parseOpenBrace <|> parseWhile <|> parseContinue <|> parseIf <|> parseElse <|> parseVar <|> parseInclude <|> parseFunk <|> parseBreak <|> parseType <|> parseIdentifier <|> parseOperator <|> parseBoolean <|> parsefNumber <|> parseiNumber <|> parseStringLex <|> parseSimpleSymbol <|> parseSymbol
+parseToken =
+  parseComment
+    <|> parseEnd
+    <|> parseComma
+    <|> parseClosePar
+    <|> parseOpenPar
+    <|> parseCloseBracket
+    <|> parseOpenBracket
+    <|> parseCloseBrace
+    <|> parseOpenBrace
+    <|> parseWhile
+    <|> parseContinue
+    <|> parseIf
+    <|> parseElse
+    <|> parseVar
+    <|> parseFunk
+    <|> parseGetArg
+    <|> parseWrite
+    <|> parseMalloc
+    <|> parseFree
+    <|> parseExit
+    <|> parseBreak
+    <|> parseType
+    <|> parseIdentifier
+    <|> parsefNumber
+    <|> parseiNumber
+    <|> parseOperator
+    <|> parseBoolean
+    <|> parseStringLex
+    <|> parseSimpleSymbol
+    <|> parseSymbol
 
 tokenize :: String -> Maybe [Token]
 tokenize s = case runParser (parseList parseNothing parseNothing parseNothing (parseAnyChar " \t\n") parseToken) s of

@@ -28,16 +28,11 @@ module OpNumber
   )
 where
 
-import Control.Applicative (Alternative (..))
-import Control.Monad.State
 import Data.Bits
 import Data.Int
-import Data.Sequence as S
-import Data.Word
 import LexerVm
   ( Variable (..),
   )
-import System.Environment (getArgs)
 
 bTI8 :: Bool -> Int8
 bTI8 True = 1
@@ -120,13 +115,13 @@ convertVar (F64 _) other = F64 (getDouble other)
 convertVar None _ = None
 
 addI :: Variable -> Variable -> Variable
-addI (I8 x) (I8 y) = I8 (x + y)
-addI (I16 x) (I16 y) = I16 (x + y)
-addI (I32 x) (I32 y) = I32 (x + y)
+addI (I8 x) (I8 y) = I64 (fromIntegral x + fromIntegral y)
+addI (I16 x) (I16 y) = I64 (fromIntegral x + fromIntegral y)
+addI (I32 x) (I32 y) = I64 (fromIntegral x + fromIntegral y)
 addI (I64 x) (I64 y) = I64 (x + y)
-addI (U8 x) (U8 y) = U8 (x + y)
-addI (U16 x) (U16 y) = U16 (x + y)
-addI (U32 x) (U32 y) = U32 (x + y)
+addI (U8 x) (U8 y) = U64 (fromIntegral x + fromIntegral y)
+addI (U16 x) (U16 y) = U64 (fromIntegral x + fromIntegral y)
+addI (U32 x) (U32 y) = U64 (fromIntegral x + fromIntegral y)
 addI (U64 x) (U64 y) = U64 (x + y)
 addI a b =
   if lenVar a >= lenVar b
@@ -142,13 +137,13 @@ addF a b =
     else convertVar b (addF (convertVar b a) b)
 
 subI :: Variable -> Variable -> Variable
-subI (I8 x) (I8 y) = I8 (x - y)
-subI (I16 x) (I16 y) = I16 (x - y)
-subI (I32 x) (I32 y) = I32 (x - y)
+subI (I8 x) (I8 y) = I64 (fromIntegral x - fromIntegral y)
+subI (I16 x) (I16 y) = I64 (fromIntegral x - fromIntegral y)
+subI (I32 x) (I32 y) = I64 (fromIntegral x - fromIntegral y)
 subI (I64 x) (I64 y) = I64 (x - y)
-subI (U8 x) (U8 y) = U8 (x - y)
-subI (U16 x) (U16 y) = U16 (x - y)
-subI (U32 x) (U32 y) = U32 (x - y)
+subI (U8 x) (U8 y) = U64 (fromIntegral x - fromIntegral y)
+subI (U16 x) (U16 y) = U64 (fromIntegral x - fromIntegral y)
+subI (U32 x) (U32 y) = U64 (fromIntegral x - fromIntegral y)
 subI (U64 x) (U64 y) = U64 (x - y)
 subI a b =
   if lenVar a >= lenVar b
@@ -164,13 +159,13 @@ subF a b =
     else convertVar b (subF (convertVar b a) b)
 
 mulI :: Variable -> Variable -> Variable
-mulI (I8 x) (I8 y) = I8 (x * y)
-mulI (I16 x) (I16 y) = I16 (x * y)
-mulI (I32 x) (I32 y) = I32 (x * y)
+mulI (I8 x) (I8 y) = I64 (fromIntegral x * fromIntegral y)
+mulI (I16 x) (I16 y) = I64 (fromIntegral x * fromIntegral y)
+mulI (I32 x) (I32 y) = I64 (fromIntegral x * fromIntegral y)
 mulI (I64 x) (I64 y) = I64 (x * y)
-mulI (U8 x) (U8 y) = U8 (x * y)
-mulI (U16 x) (U16 y) = U16 (x * y)
-mulI (U32 x) (U32 y) = U32 (x * y)
+mulI (U8 x) (U8 y) = U64 (fromIntegral x * fromIntegral y)
+mulI (U16 x) (U16 y) = U64 (fromIntegral x * fromIntegral y)
+mulI (U32 x) (U32 y) = U64 (fromIntegral x * fromIntegral y)
 mulI (U64 x) (U64 y) = U64 (x * y)
 mulI a b =
   if lenVar a >= lenVar b
@@ -186,13 +181,13 @@ mulF a b =
     else convertVar b (mulF (convertVar b a) b)
 
 divI :: Variable -> Variable -> Variable
-divI (I8 x) (I8 y) = I8 (x `div` y)
-divI (I16 x) (I16 y) = I16 (x `div` y)
-divI (I32 x) (I32 y) = I32 (x `div` y)
+divI (I8 x) (I8 y) = I64 (fromIntegral x `div` fromIntegral y)
+divI (I16 x) (I16 y) = I64 (fromIntegral x `div` fromIntegral y)
+divI (I32 x) (I32 y) = I64 (fromIntegral x `div` fromIntegral y)
 divI (I64 x) (I64 y) = I64 (x `div` y)
-divI (U8 x) (U8 y) = U8 (x `div` y)
-divI (U16 x) (U16 y) = U16 (x `div` y)
-divI (U32 x) (U32 y) = U32 (x `div` y)
+divI (U8 x) (U8 y) = U64 (fromIntegral x `div` fromIntegral y)
+divI (U16 x) (U16 y) = U64 (fromIntegral x `div` fromIntegral y)
+divI (U32 x) (U32 y) = U64 (fromIntegral x `div` fromIntegral y)
 divI (U64 x) (U64 y) = U64 (x `div` y)
 divI a b =
   if lenVar a >= lenVar b
@@ -208,13 +203,13 @@ divF a b =
     else convertVar b (divF (convertVar b a) b)
 
 modI :: Variable -> Variable -> Variable
-modI (I8 x) (I8 y) = I8 (x `mod` y)
-modI (I16 x) (I16 y) = I16 (x `mod` y)
-modI (I32 x) (I32 y) = I32 (x `mod` y)
+modI (I8 x) (I8 y) = I64 (fromIntegral x `mod` fromIntegral y)
+modI (I16 x) (I16 y) = I64 (fromIntegral x `mod` fromIntegral y)
+modI (I32 x) (I32 y) = I64 (fromIntegral x `mod` fromIntegral y)
 modI (I64 x) (I64 y) = I64 (x `mod` y)
-modI (U8 x) (U8 y) = U8 (x `mod` y)
-modI (U16 x) (U16 y) = U16 (x `mod` y)
-modI (U32 x) (U32 y) = U32 (x `mod` y)
+modI (U8 x) (U8 y) = U64 (fromIntegral x `mod` fromIntegral y)
+modI (U16 x) (U16 y) = U64 (fromIntegral x `mod` fromIntegral y)
+modI (U32 x) (U32 y) = U64 (fromIntegral x `mod` fromIntegral y)
 modI (U64 x) (U64 y) = U64 (x `mod` y)
 modI a b =
   if lenVar a >= lenVar b

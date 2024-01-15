@@ -5,17 +5,16 @@ import Ast.Expr (genExpr)
 import Lexer (tokenize)
 import System.Environment (getArgs)
 
-import Data.Char (chr)
-
-import Bytecode (getBin, bytecode, getHumanReadable)
+import Bytecode (getBin, getHumanReadable)
 import BuildBytecode (astToBytecode)
+import Preprocessing (preprocessing)
 
 import qualified Data.ByteString as B
 
 main :: IO ()
 main = do
   fileNames <- getArgs
-  file <- readFile (head fileNames)
+  file <- preprocessing fileNames
   let ast = do
         tokens <- tokenize file
         expr <- genExpr tokens
@@ -25,8 +24,8 @@ main = do
   putStrLn "-----------------------------------------"
   case ast of
     Nothing -> putStrLn "Error"
-    Just ast -> do
-      let bc = astToBytecode ast
+    Just ast' -> do
+      let bc = astToBytecode ast'
       B.writeFile "out.bin" (getBin bc)
       putStrLn "BYTECODE---------------------------------"
       putStrLn (getHumanReadable bc)
