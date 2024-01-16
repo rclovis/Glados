@@ -1,0 +1,105 @@
+#include "funkylib.fk"
+
+#define OP_END          0
+#define OP_INC_DP       1
+#define OP_DEC_DP       2
+#define OP_INC_VAL      3
+#define OP_DEC_VAL      4
+#define OP_OUT          5
+#define OP_INS          6
+#define OP_JMP_FWD      7
+#define OP_JMP_BCK      8
+
+#define SUCCESS         0
+#define FAILURE         1
+
+#define PROGRAM_SIZE    4096
+#define STACK_SIZE      512
+#define DATA_SIZE       4096
+
+allocate PROGRAM: u16 = PROGRAM_SIZE * 2;
+allocate STACK: u16 = STACK_SIZE;
+var SP: u32 = 0;
+
+
+
+var data1: u64 = _argv[1];
+var pc: u16 = 0;
+var jmp_pc: u16 = 0;
+var i: i32 = 0;
+while (data1[i] != 0) {
+    if (data1[i] == 62) {
+        PROGRAM[pc * 2] = OP_INC_DP;
+    }
+    if (data1[i] == 60) {
+        PROGRAM[pc * 2] = OP_DEC_DP;
+    }
+    if (data1[i] == 43) {
+        PROGRAM[pc * 2] = OP_INC_VAL;
+    }
+    if (data1[i] == 45) {
+        PROGRAM[pc * 2] = OP_DEC_VAL;
+    }
+    if (data1[i] == 46) {
+        PROGRAM[pc * 2] = OP_OUT;
+    }
+    if (data1[i] == 44) {
+        PROGRAM[pc * 2] = OP_INS;
+    }
+    if (data1[i] == 91) {
+        PROGRAM[pc * 2] = OP_JMP_FWD;
+        STACK[SP] = pc;
+        SP = SP + 1;
+    }
+    if (data1[i] == 93) {
+        SP = SP - 1;
+        jmp_pc = STACK[SP];
+        PROGRAM[pc * 2] = OP_JMP_BCK;
+        PROGRAM[pc * 2 + 1] = jmp_pc;
+        PROGRAM[jmp_pc * 2 + 1] = pc;
+    }
+    i = i + 1;
+    pc = pc + 1;
+}
+
+PROGRAM[pc * 2] = OP_END;
+
+pc = 0;
+allocate data2: u64 = DATA_SIZE;
+var ptr: u32 = DATA_SIZE;
+while (ptr != 0) {
+    data2[ptr] = 0;
+    ptr = ptr - 1;
+}
+while (PROGRAM[pc * 2] != OP_END) {
+    if (PROGRAM[pc * 2] == OP_INC_DP) {
+        ptr = ptr + 1;
+    }
+    if (PROGRAM[pc * 2] == OP_DEC_DP) {
+        ptr = ptr - 1;
+    }
+    if (PROGRAM[pc * 2] == OP_INC_VAL) {
+        data2[ptr] = data2[ptr] + 1;
+    }
+    if (PROGRAM[pc * 2] == OP_DEC_VAL) {
+        data2[ptr] = data2[ptr] - 1;
+    }
+    if (PROGRAM[pc * 2] == OP_OUT) {
+        write data2[ptr];
+    }
+    if (PROGRAM[pc * 2] == OP_INS) {
+        data2[ptr] = 0;
+    }
+    if (PROGRAM[pc * 2] == OP_JMP_FWD) {
+        if (data2[ptr] == 0) {
+            pc = PROGRAM[pc * 2 + 1];
+        }
+    }
+    if (PROGRAM[pc * 2] == OP_JMP_BCK) {
+        if (data2[ptr] != 0) {
+            pc = PROGRAM[pc * 2 + 1];
+        }
+    }
+    pc = pc + 1;
+}
+return 0;
