@@ -1,17 +1,15 @@
-# Glados
-
 #Grammar Rules
 
 1.Program Structure
 
-```bnf 
+```bnf
 <program> ::= { <declaration> }*
 ```
 
 2.Declarations:
-```bnf  
+```bnf
 <declaration> ::= <function-definition> | <pointer-definition> | <import-statement>
- ```
+```
 
 3.Function Definition:
 ```bnf
@@ -24,7 +22,7 @@
 ```
 
 5.Parameter:
-```bnf 
+```bnf
 <parameter> ::= <variable-name> ":" <data-type>
 ```
 
@@ -39,12 +37,12 @@
 ```
 
 8.Expressions:
-```bnf 
+```bnf
 <expression> ::= <variable-name> | <literal> | <binary-operation> | <unary-operation> | "(" <expression> ")"
 ```
 
 9.Binary Operation:
-```bnf 
+```bnf
 <binary-operation> ::= <expression> <binary-operator> <expression>
 ```
 
