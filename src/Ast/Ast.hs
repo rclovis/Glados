@@ -30,6 +30,7 @@ data Ast
   | Call String [Ast]
   | Return Ast
   | Write Ast
+  | Read String
   | Malloc Ast
   | Free Ast
   | Exit Ast
@@ -337,6 +338,8 @@ getKeywordArg (A Lexer.Exit : xs) = do
   let (value, xs') = takeUntil (== A End) xs
   (expr, _) <- getAst value
   pure (Ast.Ast.Exit expr, xs')
+getKeywordArg (A (Identifier "read") : A (Identifier name) : A End : xs) = do
+  pure (Ast.Ast.Read name, xs)
 getKeywordArg _ = Nothing
 
 getNumber :: [Expr] -> Maybe Ast
