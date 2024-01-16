@@ -72,6 +72,8 @@ data OpCode
   | Write
   | Allocate
   | GetArg
+  | GetChar
+  | Exit
   deriving (Show, Eq, Enum)
 
 data Variable
@@ -213,6 +215,10 @@ getInstruction =
     <$ getWord8Value 55
       <|> GetArg
     <$ getWord8Value 56
+      <|> GetChar
+    <$ getWord8Value 57
+      <|> Exit
+    <$ getWord8Value 58
 
 
 getVariableI :: Get Variable
@@ -331,6 +337,8 @@ getCouple = do
     Write -> getVariableN
     Allocate -> getVariableN
     GetArg -> getVariableN
+    GetChar -> getVariableN
+    Exit -> getVariableN
   return (opCode, var)
 
 vmToken :: BL.ByteString -> Maybe [Instruction]
