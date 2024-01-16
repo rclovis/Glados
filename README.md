@@ -11,7 +11,7 @@ Before you begin, ensure you have these packages installed in your machine:
 ## Getting Started
 
 ### Coding In Funk
-To learn how to code in Funk, you can read the [Funk Language Documentation](User%20Documentation/Funk%20Introduction.md).
+To learn how to code in Funk, you can read the [Funk Language Documentation](https://rclovis.github.io/Glados/User%20Documentation/Funk%20Introduction/).
 
 ### Running Funk
 To run your code written in Funk, you must first compile it to bytecode. You can do so by running the following command:
@@ -35,5 +35,8 @@ stack run vm-exe [path to your bytecode] [arguments]
     </a>
     <a href="https://github.com/TotoFunki">
         <img src="https://media.licdn.com/dms/image/D4E03AQF5p--YcDCWoQ/profile-displayphoto-shrink_800_800/0/1697809819173?e=1706745600&v=beta&t=FIEWA66x7PpYe9ZfTns7dk1rxuWL16BEAU34tHwqS0Q" width="150" height="150">
+    </a>
+    <a href="https://github.com/AngeloZhou22">
+        <img src="https://avatars.githubusercontent.com/u/91876442?s=400&u=e17541db376ba488505351104ee598772dbe67a2&v=4" width="150" height="150">
     </a>
 </div>

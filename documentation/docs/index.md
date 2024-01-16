@@ -39,4 +39,8 @@ stack run vm-exe [path to your bytecode] [arguments]
         <img src="https://media.licdn.com/dms/image/D4E03AQF5p--YcDCWoQ/profile-displayphoto-shrink_800_800/0/1697809819173?e=1706745600&v=beta&t=FIEWA66x7PpYe9ZfTns7dk1rxuWL16BEAU34tHwqS0Q" width="150" height="150">
         <p>Théo Liennard</p>
     </a>
+    <a href="https://github.com/AngeloZhou22">
+        <img src="https://avatars.githubusercontent.com/u/91876442?s=400&u=e17541db376ba488505351104ee598772dbe67a2&v=4" width="150" height="150">
+        <p>Angelo Zhou</p>
+    </a>
 </div>
