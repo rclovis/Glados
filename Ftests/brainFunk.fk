@@ -71,7 +71,6 @@ while (ptr != 0) {
     data2[ptr] = 0;
     ptr = ptr - 1;
 }
-var tmp: u8 = 0;
 while (PROGRAM[pc * 2] != OP_END) {
     if (PROGRAM[pc * 2] == OP_INC_DP) {
         ptr = ptr + 1;
@@ -89,8 +88,7 @@ while (PROGRAM[pc * 2] != OP_END) {
         write data2[ptr];
     }
     if (PROGRAM[pc * 2] == OP_INS) {
-        read tmp;
-        data2[ptr] = tmp;
+        data2[ptr] = 0;
     }
     if (PROGRAM[pc * 2] == OP_JMP_FWD) {
         if (data2[ptr] == 0) {

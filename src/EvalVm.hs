@@ -589,6 +589,15 @@ exec (GetArg, _) = do
   operationAddIp
   a <- operationPopStack
   operationGetArg (getIntegral a)
+exec (GetChar, _) = do
+  operationAddIp
+  a <- liftIO getChar
+  operationPushStack (U8 (fromIntegral (fromEnum a)))
+exec (Exit, _) = do
+  cpu <- Operation get
+  a <- operationPopStack
+  operationSetExitCode (getIntegral a :: Int)
+  operationSetIp (S.length (instructions cpu))
 exec _ = do
   cpu <- Operation get
   operationSetIp (ip cpu + 1)

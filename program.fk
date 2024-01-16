@@ -1,1 +1,3 @@
-var test: i32 = 125 + 5;
+var str1: u8 = 0;
+read str1;
+write str1;

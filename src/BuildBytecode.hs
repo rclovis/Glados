@@ -486,6 +486,21 @@ getAllocate (Ast.Ast.Allocate name t ast) = MemoryState $ do
   put stock2 {bytecode = bytecode stock2 |> Ustore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock2) 0))))}
 getAllocate _ = return ()
 
+getRead :: Ast -> MemoryState ()
+getRead (Read name) = MemoryState $ do
+  stock <- get
+  put stock {bytecode = bytecode stock |> Bytecode.GetChar}
+  stock2 <- get
+  put stock2 {bytecode = bytecode stock2 |> Ustore 2 (correspondingInt 2 (toInteger (memoryGetVarIndex name (index (memVar stock2) 0))))}
+getRead _ = return ()
+
+getExit :: Ast -> MemoryState ()
+getExit (Ast.Ast.Exit num) = MemoryState $ do
+  runMemoryState (getAll num)
+  stock <- get
+  put stock {bytecode = bytecode stock |> Bytecode.Exit}
+getExit _ = return ()
+
 getAll :: Ast -> MemoryState ()
 getAll (Seq asts) = MemoryState $ do
   runMemoryState (getSeq (Seq asts))
@@ -521,6 +536,10 @@ getAll (Ast.Ast.Write ast) = MemoryState $ do
   runMemoryState (getWrite (Ast.Ast.Write ast))
 getAll (Ast.Ast.Allocate name t ast) = MemoryState $ do
   runMemoryState (getAllocate (Ast.Ast.Allocate name t ast))
+getAll (Read name) = MemoryState $ do
+  runMemoryState (getRead (Read name))
+getAll (Ast.Ast.Exit num) = MemoryState $ do
+  runMemoryState (getExit num)
 getAll _ = return ()
 
 bcSecToList :: S.Seq Bytecode -> [Bytecode]

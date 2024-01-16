@@ -1,0 +1,10 @@
+#include "funkylib.fk"
+
+var str: u8[] = "Very Strong string really difficult to break and very long as you can see";
+
+putnbr(strlen(str));
+write 10;
+putstr(str);
+write 10;
+putstrrev(str);
+write 10;

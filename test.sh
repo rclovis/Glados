@@ -45,7 +45,7 @@ function test_compil() {
 
 function test_all() {
     file=$1
-    stack run $file > /dev/null
+    stack run $file $4 > /dev/null
     stack run vm-exe out.bin > output.txt
 
     if diff -q output.txt $2 ; then
@@ -66,10 +66,11 @@ function test_all() {
 }
 
 # Test cases
-test_all "Ftests/Input1.fk" "Ftests/Output1" "Simple putstr"
-test_all "Ftests/Input2.fk" "Ftests/Output2" "putnbr All cases"
-test_all "Ftests/Input4.fk" "Ftests/Output4" "Simple Operations"
-test_all "Ftests/Input3.fk" "Ftests/Output3" "ComplexesOperations"
+test_all "Ftests/Input1.fk" "Ftests/Output1" "Simple putstr" ""
+test_all "Ftests/Input2.fk" "Ftests/Output2" "putnbr All cases" ""
+test_all "Ftests/Input4.fk" "Ftests/Output4" "Simple Operations" ""
+test_all "Ftests/Input3.fk" "Ftests/Output3" "ComplexesOperations" ""
+test_all "Ftests/Input5.fk" "Ftests/Output5" "String Operations" "funkylib.fk"
 
 echo "Tested: $((passed + failed))"
 echo "Passed: $passed"

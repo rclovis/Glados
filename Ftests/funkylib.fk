@@ -67,4 +67,3 @@ funk strcmp(str1: u64, str2: u64): i32 {
     }
     return 0;
 }
-
